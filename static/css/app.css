@@ -16,10 +16,10 @@ body {
   color: rgba(0, 0, 0, 0.6);
 }
 .metric .warning {
-  color: #fbbd08!important;
+  color: #fbbd08 !important;
 }
 .metric .severe {
-  color: #db2828!important;
+  color: #db2828 !important;
 }
 .host.header {
   display: inline-block;
