@@ -1,0 +1,44 @@
+body {
+  margin-top: 2rem;
+}
+
+.metric {
+  display: inline-block;
+  font-size: 1.6em;
+  line-height: 1.2em;
+  margin-left: 4px;
+  margin-right: 4px;
+  text-align: right;
+  max-width: 90px;
+  .header {
+    font-size: 0.45em;
+    line-height: 1.0em;
+    color: rgba(0, 0, 0, .6);
+  }
+  .warning{
+    color: #fbbd08!important;
+  }
+  .severe{
+    color: #db2828!important;
+  }
+}
+
+.host.header {
+  display: inline-block;
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-right: 4px;
+}
+
+.host.segment {
+  .divider {
+    border-left: 1px solid rgba(34, 36, 38, .15);
+    border-right: 1px solid rgba(255, 255, 255, .1);
+    width: 0;
+    height: 3.5em;
+    display: inline-block;
+    vertical-align: bottom;
+    margin-left: 4px;
+    margin-right: 4px;
+  }
+}

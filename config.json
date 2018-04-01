@@ -1,0 +1,23 @@
+{
+  "server":{
+    "host": "0.0.0.0",
+    "port": 8654,
+    "secret": "b3YM5tT3yPutFgch79zx9Pup"
+  },
+  "monitor":{
+    "mode": "app",
+    "site_name": "UNSW KG Servers",
+    "interval": 3,
+    "host_groups": [
+      {
+        "name": "Testing",
+        "hosts": [
+          {
+            "name": "localhost",
+            "address": "localhost"
+          }
+        ]
+      }
+    ]
+  }
+}

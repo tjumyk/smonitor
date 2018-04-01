@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="app" ng-cloak ng-controller="MainController">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title ng-bind="config.site_title">System Monitor</title>
+    <link rel="shortcut icon" href="static/image/logo-64.png" type="image/png">
+    <link rel="stylesheet" href="static/css/semantic.min.css">
+    <link rel="stylesheet" href="static/css/app.css">
+    <script src="static/js/jquery.min.js"></script>
+    <script src="static/js/semantic.min.js"></script>
+    <script src="static/js/angular.min.js"></script>
+    <script src="static/js/moment.min.js"></script>
+    <script src="static/js/socket.io.js"></script>
+
+    <script src="static/js/app.js"></script>
+</head>
+<body>
+<div class="ui container">
+    <h1 class="ui center aligned header">
+        <img class="ui image" src="static/image/logo.svg">
+        <div class="content">
+            {{config.site_name}}
+            <div class="sub header">System Monitor</div>
+        </div>
+    </h1>
+    <div ng-repeat="host_group in config.host_groups">
+        <h2 class="ui header">
+            <i class="server icon"></i>
+            <div class="content">{{host_group.name}}</div>
+        </h2>
+        <div ng-repeat="host in host_group.hosts" class="ui segments">
+            <div class="ui host segment">
+                <h3 class="ui host header">
+                    <i class="desktop icon"></i>
+                    <div class="content">
+                        {{host.name}}
+                        <div class="sub header">({{host.address}})</div>
+                    </div>
+                </h3>
+                <div class="divider"></div>
+                <div class="metric">
+                    <div class="header">CPU Utilization</div>
+                    <div class="content" ng-class="host.status.cpu.percent_level">{{host.status.cpu.percent}}%</div>
+                </div>
+                <div class="metric">
+                    <div class="header">CPU Threads</div>
+                    <div class="content">{{host.status.cpu.count}}</div>
+                </div>
+                <div class="divider"></div>
+                <div class="metric">
+                    <div class="header">Memory Utilization</div>
+                    <div class="content" ng-class="host.status.memory.percent_level">{{host.status.memory.percent}}%</div>
+                </div>
+                <div class="metric">
+                    <div class="header">Memory Size</div>
+                    <div class="content">{{host.status.memory.total_h}}</div>
+                </div>
+                <div class="divider"></div>
+                <div class="metric">
+                    <div class="header">System Partition Utilization</div>
+                    <div class="content" ng-class="host.status.disk.system.percent_level">{{host.status.disk.system.percent}}%</div>
+                </div>
+                <div class="metric">
+                    <div class="header">System Partition Size</div>
+                    <div class="content">{{host.status.disk.system.total_h}}</div>
+                </div>
+                <div class="divider"></div>
+                <div class="metric">
+                    <div class="header">Other Partitions Utilization</div>
+                    <div class="content" ng-class="host.status.disk.others.percent_level">{{host.status.disk.others.percent_h}}</div>
+                </div>
+                <div class="metric">
+                    <div class="header">Other Partitions Total Size</div>
+                    <div class="content">{{host.status.disk.others.total_h}}</div>
+                </div>
+                <div class="divider"></div>
+                <div class="metric">
+                    <div class="header">Up Time</div>
+                    <div class="content">{{host.status.up_time}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
