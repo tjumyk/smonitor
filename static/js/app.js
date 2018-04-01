@@ -45,19 +45,11 @@
         return status;
       };
       return $http.get('api/config').then(function(response) {
-        var config, group, host, i, len, local_group, local_host, ref, results, socket;
+        var config, group, host, i, len, ref, results, socket;
         $scope.config = config = response.data;
         config.site_title = config.site_name + ' \u00B7 System Monitor';
         if (config.mode === 'node') {
-          local_host = {
-            name: 'localhost',
-            address: 'localhost'
-          };
-          local_group = {
-            name: 'Local Host',
-            hosts: [local_host]
-          };
-          config.host_groups = [local_group];
+          config.host_groups = [];
         }
         ref = config.host_groups;
         results = [];

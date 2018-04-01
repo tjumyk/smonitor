@@ -39,13 +39,7 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
     $scope.config = config = response.data
     config.site_title = config.site_name + ' \u00B7 System Monitor'
     if(config.mode == 'node')
-      local_host =
-        name: 'localhost'
-        address: 'localhost'
-      local_group =
-        name: 'Local Host'
-        hosts: [local_host]
-      config.host_groups = [local_group]
+      config.host_groups = []
     for group in config.host_groups
       for host in group.hosts
         host.socket = socket = io("//#{host.address}:#{config.port}")
