@@ -21,11 +21,14 @@ body {
 .metric .severe {
   color: #db2828 !important;
 }
-.host.header {
+.ui.host.header {
   display: inline-block;
   margin-top: 0;
   margin-bottom: 0;
   margin-right: 4px;
+}
+.ui.host.header .sub.header {
+  font-size: 0.6em;
 }
 .host-group {
   margin-top: 2em;
