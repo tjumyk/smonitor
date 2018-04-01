@@ -26,13 +26,13 @@
             <div class="sub header">System Monitor</div>
         </div>
     </h1>
-    <div ng-repeat="host_group in config.host_groups">
+    <div ng-repeat="host_group in config.host_groups" class="host-group">
         <h2 class="ui header">
             <i class="server icon"></i>
             <div class="content">{{host_group.name}}</div>
         </h2>
-        <div ng-repeat="host in host_group.hosts" class="ui segments">
-            <div class="ui host segment">
+        <div class="ui segments">
+            <div class="ui host segment" ng-repeat="host in host_group.hosts">
                 <h3 class="ui host header">
                     <i class="desktop icon"></i>
                     <div class="content">
