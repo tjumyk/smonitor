@@ -19,7 +19,13 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
 
   process_status_message = (status)->
     status.memory.total_h = human_size(status.memory.total)
-    status.disk.system.total_h = human_size(status.disk.system.total)
+    if status.disk.system
+      status.disk.system.total_h = human_size(status.disk.system.total)
+      status.disk.system.percent_h = status.disk.system.percent + '%'
+    else
+      status.disk.system =
+        total_h: 'N/A'
+        percent_h: 'N/A'
     if status.disk.others
       status.disk.others.total_h = human_size(status.disk.others.total)
       status.disk.others.percent_h = status.disk.others.percent + '%'
@@ -32,7 +38,8 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
 
     status.cpu.percent_level = percent_level(status.cpu.percent)
     status.memory.percent_level = percent_level(status.memory.percent)
-    status.disk.system.percent_level = percent_level(status.disk.system.percent)
+    if status.disk.system.total
+      status.disk.system.percent_level = percent_level(status.disk.system.percent)
     if status.disk.others.total
       status.disk.others.percent_level = percent_level(status.disk.others.percent)
 
