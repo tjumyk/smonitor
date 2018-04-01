@@ -1,5 +1,5 @@
 body {
-  margin-top: 2rem;
+  padding-top: 2rem;
 }
 .metric {
   display: inline-block;
@@ -29,6 +29,7 @@ body {
 }
 .host-group {
   margin-top: 2em;
+  margin-bottom: 2em;
 }
 .host.segment .divider {
   border-left: 1px solid rgba(34, 36, 38, 0.15);
