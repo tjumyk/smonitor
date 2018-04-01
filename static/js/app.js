@@ -67,7 +67,7 @@
               host = ref1[j];
               results1.push((function(host) {
                 var socket;
-                host.socket = socket = io("//" + host.address + ":" + config.port);
+                host.socket = socket = io("http://" + host.address + ":" + config.port);
                 return socket.on('status', function(message) {
                   return $timeout(function() {
                     return host.status = process_status_message(message);
