@@ -42,8 +42,9 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
       config.host_groups = []
     for group in config.host_groups
       for host in group.hosts
-        host.socket = socket = io("//#{host.address}:#{config.port}")
-        socket.on 'status', (message)->
-          $timeout ->
-            host.status = process_status_message(message)
+        do (host)->
+          host.socket = socket = io("//#{host.address}:#{config.port}")
+          socket.on 'status', (message)->
+            $timeout ->
+              host.status = process_status_message(message)
 ])

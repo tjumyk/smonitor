@@ -45,7 +45,7 @@
         return status;
       };
       return $http.get('api/config').then(function(response) {
-        var config, group, host, i, len, ref, results, socket;
+        var config, group, host, i, len, ref, results;
         $scope.config = config = response.data;
         config.site_title = config.site_name + ' \u00B7 System Monitor';
         if (config.mode === 'node') {
@@ -61,12 +61,15 @@
             results1 = [];
             for (j = 0, len1 = ref1.length; j < len1; j++) {
               host = ref1[j];
-              host.socket = socket = io("//" + host.address + ":" + config.port);
-              results1.push(socket.on('status', function(message) {
-                return $timeout(function() {
-                  return host.status = process_status_message(message);
+              results1.push((function(host) {
+                var socket;
+                host.socket = socket = io("//" + host.address + ":" + config.port);
+                return socket.on('status', function(message) {
+                  return $timeout(function() {
+                    return host.status = process_status_message(message);
+                  });
                 });
-              }));
+              })(host));
             }
             return results1;
           })());
