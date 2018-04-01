@@ -61,6 +61,7 @@ def status_worker():
     while clients:
         vm = psutil.virtual_memory()
         sys_partition = None
+        other_partitions = None
         other_partitions_total = 0
         other_partitions_used = 0
         for part in psutil.disk_partitions():
@@ -72,10 +73,11 @@ def status_worker():
             else:
                 other_partitions_total += usage.total
                 other_partitions_used += usage.used
-        other_partitions = {
-            'total': other_partitions_total,
-            'percent': round(1000.0 * other_partitions_used / other_partitions_total) / 10.0
-        }
+        if other_partitions_total > 0:
+            other_partitions = {
+                'total': other_partitions_total,
+                'percent': round(1000.0 * other_partitions_used / other_partitions_total) / 10.0
+            }
         status = {
             'cpu': {
                 'count': psutil.cpu_count(),
