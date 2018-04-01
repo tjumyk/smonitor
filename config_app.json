@@ -1,0 +1,61 @@
+{
+  "server":{
+    "host": "0.0.0.0",
+    "port": 8999,
+    "secret": "b3YM5tT3yPutFgch79zx9Pup"
+  },
+  "monitor":{
+    "mode": "app",
+    "site_name": "UNSW KG Servers",
+    "interval": 3,
+    "host_groups": [
+      {
+        "name": "Central Server",
+        "hosts": [
+          {
+            "name": "kg",
+            "address": "kg.cse.unsw.edu.au"
+          }
+        ]
+      },
+      {
+        "name": "GPU Computing",
+        "hosts": [
+          {
+            "name": "pangu",
+            "address": "pangu.cse.unsw.edu.au"
+          }
+        ]
+      },
+      {
+        "name": "Nectar Cloud",
+        "hosts": [
+          {
+            "name": "kongzi0",
+            "address": "43.240.97.125"
+          },
+          {
+            "name": "kongzi1",
+            "address": "43.240.97.126"
+          },
+          {
+            "name": "kongzi2",
+            "address": "43.240.99.122"
+          },
+          {
+            "name": "kongzi3",
+            "address": "43.240.96.216"
+          },
+          {
+            "name": "kongzi4",
+            "address": "43.240.96.221"
+          },
+          {
+            "name": "kongzi5",
+            "address": "43.240.97.73"
+          }
+        ]
+      }
+    ]
+  }
+}
