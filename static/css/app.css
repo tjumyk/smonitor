@@ -9,6 +9,9 @@ body {
   text-align: right;
   max-width: 90px;
 }
+.metric.wide {
+  max-width: 200px;
+}
 .metric .header {
   font-size: 0.45em;
   line-height: 1.0em;
