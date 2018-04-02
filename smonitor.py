@@ -61,15 +61,16 @@ def status_worker():
     while clients:
         vm = psutil.virtual_memory()
         sys_partition = None
+        boot_partition = None
         other_partitions = None
         other_partitions_total = 0
         other_partitions_used = 0
         for part in psutil.disk_partitions():
-            if part.fstype != 'ext4':
-                continue  # only care about regular linux partitions
             usage = psutil.disk_usage(part.mountpoint)
             if part.mountpoint == '/':
                 sys_partition = {'total': usage.total, 'percent': usage.percent}
+            elif part.mountpoint == '/boot/efi':
+                boot_partition = {'total': usage.total, 'percent': usage.percent}
             else:
                 other_partitions_total += usage.total
                 other_partitions_used += usage.used
@@ -89,6 +90,7 @@ def status_worker():
             },
             'disk': {
                 'system': sys_partition,
+                'boot': boot_partition,
                 'others': other_partitions
             },
             'boot_time': psutil.boot_time()
