@@ -28,6 +28,7 @@
         return 'severe';
       };
       process_status_message = function(status) {
+        var gpu, i, len, ref;
         status.memory.total_h = human_size(status.memory.total);
         if (status.disk.system) {
           status.disk.system.total_h = human_size(status.disk.system.total);
@@ -55,6 +56,13 @@
         }
         if (status.disk.others.total) {
           status.disk.others.percent_level = percent_level(status.disk.others.percent);
+        }
+        if (status.gpu) {
+          ref = status.gpu.devices;
+          for (i = 0, len = ref.length; i < len; i++) {
+            gpu = ref[i];
+            gpu.memory.total_h = human_size(gpu.memory.total);
+          }
         }
         return status;
       };

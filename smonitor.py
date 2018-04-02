@@ -1,6 +1,7 @@
 import json
 
 import psutil
+import pynvml
 import threading
 
 from flask import Flask, jsonify, session, request
@@ -58,48 +59,114 @@ def socket_ping():
 def status_worker():
     global worker_thread
     print('[Background] Worker Started')
-    while clients:
-        vm = psutil.virtual_memory()
-        sys_partition = None
-        boot_partition = None
-        other_partitions = None
-        other_partitions_total = 0
-        other_partitions_used = 0
-        for part in psutil.disk_partitions():
-            usage = psutil.disk_usage(part.mountpoint)
-            if part.mountpoint == '/':
-                sys_partition = {'total': usage.total, 'percent': usage.percent}
-            elif part.mountpoint == '/boot/efi':
-                boot_partition = {'total': usage.total, 'percent': usage.percent}
-            else:
-                other_partitions_total += usage.total
-                other_partitions_used += usage.used
-        if other_partitions_total > 0:
-            other_partitions = {
-                'total': other_partitions_total,
-                'percent': round(1000.0 * other_partitions_used / other_partitions_total) / 10.0
-            }
-        status = {
-            'cpu': {
-                'count': psutil.cpu_count(),
-                'percent': psutil.cpu_percent()
-            },
-            'memory': {
-                'total': vm.total,
-                'percent': vm.percent
-            },
-            'disk': {
-                'system': sys_partition,
-                'boot': boot_partition,
-                'others': other_partitions
-            },
-            'boot_time': psutil.boot_time()
+
+    nvml_inited = False
+    gpu_info_static = None
+    try:
+        pynvml.nvmlInit()
+        nvml_inited = True
+        print('[NVML] NVML Initialized')
+
+        driver = pynvml.nvmlSystemGetDriverVersion().decode()
+        device_count = pynvml.nvmlDeviceGetCount()
+        devices = []
+        for i in range(device_count):
+            handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+            name = pynvml.nvmlDeviceGetName(handle).decode()
+            devices.append({
+                'index': i,
+                'handle': handle,
+                'name': name
+            })
+        gpu_info_static = {
+            'driver': driver,
+            'devices': devices
         }
+
+    except pynvml.NVMLError as e:
+        print('[NVML] NVML Not Initialized: %s' % str(e))
+        pass
+
+    while clients:
+        status = _get_status_psutil()
+        if gpu_info_static:
+            status.update(_get_status_nvml(gpu_info_static))
         socket_io.emit('status', status, broadcast=True)
         socket_io.sleep(config['monitor']['interval'])
     with worker_thread_lock:
         worker_thread = None
+
+    if nvml_inited:
+        try:
+            pynvml.nvmlShutdown()
+            print('[NVML] NVML Shutdown')
+        except pynvml.NVMLError as e:
+            print('[NVML] NVML Failed to Shutdown: %s' % str(e))
+            pass
     print('[Background] Worker Terminated')
+
+
+def _get_status_psutil():
+    vm = psutil.virtual_memory()
+    sys_partition = None
+    boot_partition = None
+    other_partitions = None
+    other_partitions_total = 0
+    other_partitions_used = 0
+    for part in psutil.disk_partitions():
+        usage = psutil.disk_usage(part.mountpoint)
+        if part.mountpoint == '/':
+            sys_partition = {'total': usage.total, 'percent': usage.percent}
+        elif part.mountpoint == '/boot/efi':
+            boot_partition = {'total': usage.total, 'percent': usage.percent}
+        else:
+            other_partitions_total += usage.total
+            other_partitions_used += usage.used
+    if other_partitions_total > 0:
+        other_partitions = {
+            'total': other_partitions_total,
+            'percent': round(1000.0 * other_partitions_used / other_partitions_total) / 10.0
+        }
+    status = {
+        'cpu': {
+            'count': psutil.cpu_count(),
+            'percent': psutil.cpu_percent()
+        },
+        'memory': {
+            'total': vm.total,
+            'percent': vm.percent
+        },
+        'disk': {
+            'system': sys_partition,
+            'boot': boot_partition,
+            'others': other_partitions
+        },
+        'boot_time': psutil.boot_time()
+    }
+    return status
+
+
+def _get_status_nvml(static_info):
+    devices_info = []
+    for device in static_info['devices']:
+        info = dict(device)
+        del info['handle']  # copy all fields except handle
+        handle = device['handle']
+        util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        # process_info = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
+
+        info['utilization'] = {'gpu': util.gpu, 'memory': util.memory}
+        info['memory'] = {
+            'total': mem_info.total,
+            'percent': int(1000.0 * mem_info.used / mem_info.total) / 10.0
+        }
+        # info['processes'] = [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
+        devices_info.append(info)
+
+    status = dict(static_info)
+    status['devices'] = devices_info
+    return {'gpu': status}
 
 
 if __name__ == '__main__':

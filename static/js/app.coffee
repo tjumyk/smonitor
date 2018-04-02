@@ -43,6 +43,10 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
     if status.disk.others.total
       status.disk.others.percent_level = percent_level(status.disk.others.percent)
 
+    if status.gpu
+      for gpu in status.gpu.devices
+        gpu.memory.total_h = human_size(gpu.memory.total)
+
     return status
 
   $http.get('api/config').then (response)->
