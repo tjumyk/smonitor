@@ -233,6 +233,9 @@ nvmlLib = None
 libLoadLock = threading.Lock()
 _nvmlLib_refcount = 0 # Incremented on each nvmlInit and decremented on nvmlShutdown
 
+class NVMLError_Uninitialized(Exception):
+    pass
+
 ## Error Checking ##
 class NVMLError(Exception):
     _valClassMapping = dict()
@@ -1668,7 +1671,6 @@ def nvmlSystemGetTopologyGpuSet(cpuNumber):
 
     if ret != NVML_SUCCESS:
         raise NVMLError(ret)
-    print c_count.value
     # call again with a buffer
     device_array = c_nvmlDevice_t * c_count.value
     c_devices = device_array()
