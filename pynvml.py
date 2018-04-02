@@ -399,7 +399,7 @@ class _PrintableStructure(Structure):
             elif "<default>" in self._fmt_:
                 fmt = self._fmt_["<default>"]
             result.append(("%s: " + fmt) % (key, value))
-        return self.__class__.__name__ + "(" + string.join(result, ", ") + ")"
+        return self.__class__.__name__ + "(" + ", ".join(result) + ")"
     
 class c_nvmlUnitInfo_t(_PrintableStructure):
     _fields_ = [
