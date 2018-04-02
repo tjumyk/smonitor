@@ -160,7 +160,7 @@ def _get_status_nvml(static_info):
         handle = device['handle']
         util = pynvml.nvmlDeviceGetUtilizationRates(handle)
         mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-        # process_info = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
+        process_info = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
 
         info['utilization'] = {'gpu': util.gpu, 'memory': util.memory}
         info['memory'] = {
@@ -168,6 +168,7 @@ def _get_status_nvml(static_info):
             'percent': int(1000.0 * mem_info.used / mem_info.total) / 10.0
         }
         # info['processes'] = [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
+        info['processes'] = len(process_info)  # for security reasons, just provide the number of processes
         devices_info.append(info)
 
     status = dict(static_info)
@@ -179,4 +180,5 @@ if __name__ == '__main__':
     port = config['server']['port']
     if len(sys.argv) > 1:
         port = int(sys.argv[1])
+        config['server']['port'] = port
     socket_io.run(app, host=config['server']['host'], port=port)

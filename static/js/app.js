@@ -62,9 +62,6 @@
           for (i = 0, len = ref.length; i < len; i++) {
             gpu = ref[i];
             gpu.memory.total_h = human_size(gpu.memory.total);
-            if (gpu.memory.percent > 0 || gpu.utilization.gpu > 0 || gpu.utilization.memory > 0) {
-              gpu.running = true;
-            }
           }
         }
         return status;

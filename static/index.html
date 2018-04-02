@@ -86,7 +86,7 @@
                 <div ng-show="host.status.gpu">
                     <div class="ui divider"></div>
                     <div class="metric-container">
-                        <div ng-repeat="gpu in host.status.gpu.devices" class="metric-group" ng-class="{'success': gpu.running}">
+                        <div ng-repeat="gpu in host.status.gpu.devices" class="metric-group" ng-class="{'success': gpu.processes>0}">
                             <div class="header">
                                 GPU {{gpu.index}}
                                 <div class="sub">{{gpu.name}}</div>

@@ -46,8 +46,6 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
     if status.gpu
       for gpu in status.gpu.devices
         gpu.memory.total_h = human_size(gpu.memory.total)
-        if gpu.memory.percent > 0 or gpu.utilization.gpu > 0 or gpu.utilization.memory > 0
-          gpu.running = true
 
     return status
 
