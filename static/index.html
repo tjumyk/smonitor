@@ -85,25 +85,27 @@
                 </div>
                 <div ng-show="host.status.gpu">
                     <div class="ui divider"></div>
-                    <div class="metric">
-                        <div class="header">GPU Driver</div>
-                        <div class="content">{{host.status.gpu.driver}}</div>
+                    <div>
+                        <div ng-repeat="gpu in host.status.gpu.devices" class="metric-group" ng-class="{'success': gpu.running}">
+                            <div class="header">
+                                GPU {{gpu.index}}
+                                <div class="sub">{{gpu.name}}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">GPU Utilization</div>
+                                <div class="content">{{gpu.utilization.gpu}}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">Memory Utilization</div>
+                                <div class="content">{{gpu.memory.percent}}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">Memory Size</div>
+                                <div class="content">{{gpu.memory.total_h}}</div>
+                            </div>
+                        </div>
                     </div>
-                    <div ng-repeat="gpu in host.status.gpu.devices" class="metric-group">
-                        <div class="header">GPU {{gpu.index}}</div>
-                        <div class="metric">
-                            <div class="header">GPU Utilization</div>
-                            <div class="content">{{gpu.utilization.gpu}}%</div>
-                        </div>
-                        <div class="metric">
-                            <div class="header">Memory Utilization</div>
-                            <div class="content">{{gpu.memory.percent}}%</div>
-                        </div>
-                        <div class="metric">
-                            <div class="header">Memory Size</div>
-                            <div class="content">{{gpu.memory.total_h}}</div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>

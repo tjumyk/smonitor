@@ -15,7 +15,7 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
       return ''
     if percent < 90
       return 'warning'
-    return 'severe'
+    return 'danger'
 
   process_status_message = (status)->
     status.memory.total_h = human_size(status.memory.total)
@@ -46,6 +46,8 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
     if status.gpu
       for gpu in status.gpu.devices
         gpu.memory.total_h = human_size(gpu.memory.total)
+        if gpu.memory.percent > 0 or gpu.utilization.gpu > 0 or gpu.utilization.memory > 0
+          gpu.running = true
 
     return status
 

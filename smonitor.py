@@ -66,23 +66,7 @@ def status_worker():
         pynvml.nvmlInit()
         nvml_inited = True
         print('[NVML] NVML Initialized')
-
-        driver = pynvml.nvmlSystemGetDriverVersion().decode()
-        device_count = pynvml.nvmlDeviceGetCount()
-        devices = []
-        for i in range(device_count):
-            handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-            name = pynvml.nvmlDeviceGetName(handle).decode()
-            devices.append({
-                'index': i,
-                'handle': handle,
-                'name': name
-            })
-        gpu_info_static = {
-            'driver': driver,
-            'devices': devices
-        }
-
+        gpu_info_static = _get_nvml_static_info()
     except pynvml.NVMLError as e:
         print('[NVML] NVML Not Initialized: %s' % str(e))
         pass
@@ -104,6 +88,27 @@ def status_worker():
             print('[NVML] NVML Failed to Shutdown: %s' % str(e))
             pass
     print('[Background] Worker Terminated')
+
+
+def _get_nvml_static_info():
+    # driver_version = pynvml.nvmlSystemGetDriverVersion().decode()
+    # nvml_version = pynvml.nvmlSystemGetNVMLVersion().decode()
+    device_count = pynvml.nvmlDeviceGetCount()
+    devices = []
+    for i in range(device_count):
+        handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+        name = pynvml.nvmlDeviceGetName(handle).decode()
+        devices.append({
+            'index': i,
+            'handle': handle,
+            'name': name
+        })
+    gpu_info_static = {
+        # 'driver': driver_version,
+        # 'nvml': nvml_version,
+        'devices': devices
+    }
+    return gpu_info_static
 
 
 def _get_status_psutil():
