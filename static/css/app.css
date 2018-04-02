@@ -65,6 +65,10 @@ body {
   background-color: #db2828 !important;
   color: #fff;
 }
+.metric-container {
+  margin-left: -4px;
+  margin-right: -4px;
+}
 .ui.host.header {
   display: inline-block;
   margin-top: 0;
