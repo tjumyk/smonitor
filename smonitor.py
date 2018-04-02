@@ -1,11 +1,12 @@
 import json
-
-import psutil
-import pynvml
+import sys
 import threading
 
-from flask import Flask, jsonify, session, request
+import psutil
+from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
+
+import pynvml
 
 app = Flask(__name__)
 with open('config.json') as f_config:
@@ -175,4 +176,7 @@ def _get_status_nvml(static_info):
 
 
 if __name__ == '__main__':
-    socket_io.run(app, host=config['server']['host'], port=config['server']['port'])
+    port = config['server']['port']
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+    socket_io.run(app, host=config['server']['host'], port=port)
