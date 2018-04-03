@@ -35,56 +35,58 @@
         </h2>
         <div class="ui segments">
             <div class="ui host segment" ng-repeat="host in host_group.hosts">
-                <h3 class="ui host header">
-                    <i class="desktop icon"></i>
-                    <div class="content">
-                        {{host.name}}
-                        <div class="sub header">({{host.address}})</div>
+                <div class="metric-container">
+                    <h3 class="ui host header">
+                        <i class="desktop icon"></i>
+                        <div class="content">
+                            {{host.name}}
+                            <div class="sub header">({{host.address}})</div>
+                        </div>
+                    </h3>
+                    <div class="bar"></div>
+                    <div class="metric">
+                        <div class="header">CPU Utilization</div>
+                        <div class="content" ng-class="host.status.cpu.percent_level">{{host.status.cpu.percent}}%</div>
                     </div>
-                </h3>
-                <div class="bar"></div>
-                <div class="metric">
-                    <div class="header">CPU Utilization</div>
-                    <div class="content" ng-class="host.status.cpu.percent_level">{{host.status.cpu.percent}}%</div>
-                </div>
-                <div class="metric">
-                    <div class="header">CPU Threads</div>
-                    <div class="content">{{host.status.cpu.count}}</div>
-                </div>
-                <div class="bar"></div>
-                <div class="metric">
-                    <div class="header">Memory Utilization</div>
-                    <div class="content" ng-class="host.status.memory.percent_level">{{host.status.memory.percent}}%</div>
-                </div>
-                <div class="metric">
-                    <div class="header">Memory Size</div>
-                    <div class="content">{{host.status.memory.total_h}}</div>
-                </div>
-                <div class="bar"></div>
-                <div class="metric">
-                    <div class="header">System Partition Utilization</div>
-                    <div class="content" ng-class="host.status.disk.system.percent_level">{{host.status.disk.system.percent_h}}</div>
-                </div>
-                <div class="metric">
-                    <div class="header">System Partition Size</div>
-                    <div class="content">{{host.status.disk.system.total_h}}</div>
-                </div>
-                <div class="bar"></div>
-                <div class="metric">
-                    <div class="header">Other Partitions Utilization</div>
-                    <div class="content" ng-class="host.status.disk.others.percent_level">{{host.status.disk.others.percent_h}}</div>
-                </div>
-                <div class="metric">
-                    <div class="header">Other Partitions Total Size</div>
-                    <div class="content">{{host.status.disk.others.total_h}}</div>
-                </div>
-                <div class="bar"></div>
-                <div class="metric wide">
-                    <div class="header">Up Time</div>
-                    <div class="content">{{host.status.up_time}}</div>
+                    <div class="metric">
+                        <div class="header">CPU Threads</div>
+                        <div class="content">{{host.status.cpu.count}}</div>
+                    </div>
+                    <div class="bar"></div>
+                    <div class="metric">
+                        <div class="header">Memory Utilization</div>
+                        <div class="content" ng-class="host.status.memory.percent_level">{{host.status.memory.percent}}%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="header">Memory Size</div>
+                        <div class="content">{{host.status.memory.total_h}}</div>
+                    </div>
+                    <div class="bar"></div>
+                    <div class="metric">
+                        <div class="header">System Partition Utilization</div>
+                        <div class="content" ng-class="host.status.disk.system.percent_level">{{host.status.disk.system.percent_h}}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="header">System Partition Size</div>
+                        <div class="content">{{host.status.disk.system.total_h}}</div>
+                    </div>
+                    <div class="bar"></div>
+                    <div class="metric">
+                        <div class="header">Other Partitions Utilization</div>
+                        <div class="content" ng-class="host.status.disk.others.percent_level">{{host.status.disk.others.percent_h}}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="header">Other Partitions Total Size</div>
+                        <div class="content">{{host.status.disk.others.total_h}}</div>
+                    </div>
+                    <div class="bar"></div>
+                    <div class="metric wide">
+                        <div class="header">Up Time</div>
+                        <div class="content">{{host.status.up_time}}</div>
+                    </div>
                 </div>
                 <div ng-show="host.status.gpu">
-                    <div class="ui divider"></div>
+                    <div class="ui slim divider"></div>
                     <div class="metric-container">
                         <div ng-repeat="gpu in host.status.gpu.devices" class="metric-group" ng-class="{'success': gpu.processes>0}">
                             <div class="header">

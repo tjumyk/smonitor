@@ -2,6 +2,8 @@
 @color-warning: #fbbd08 !important;
 @color-danger: #db2828 !important;
 
+@metric-margin: 0.2rem;
+
 body {
   padding-top: 2rem;
 }
@@ -10,7 +12,7 @@ body {
   display: inline-block;
   font-size: 1.6em;
   line-height: 1.2em;
-  margin: 4px;
+  margin: @metric-margin;
   text-align: right;
   max-width: 90px;
   &.wide{
@@ -34,7 +36,7 @@ body {
 
 .metric-group {
   display: inline-block;
-  margin: 4px;
+  margin: @metric-margin;
   border-radius: .28571429rem;
   border: 1px solid rgba(34, 36, 38, .15);
   box-shadow: 0 1px 2px 0 rgba(34, 36, 38, .15);
@@ -45,7 +47,7 @@ body {
     font-weight: 700;
     background-color: #e8e8e8;
     border-radius: .21428571rem .21428571rem 0 0;
-    padding: .25em 4px;
+    padding: .25em @metric-margin;
     .sub {
       float: right;
       font-weight: normal;
@@ -76,15 +78,12 @@ body {
 }
 
 .metric-container{
-  margin-left: -4px;
-  margin-right: -4px;
+  margin: -@metric-margin;
 }
 
 .ui.host.header {
   display: inline-block;
-  margin-top: 0;
-  margin-bottom: 0;
-  margin-right: 4px;
+  margin: @metric-margin;
   .sub.header {
     font-size: 0.6em;
   }
@@ -103,7 +102,11 @@ body {
     height: 4em;
     display: inline-block;
     vertical-align: bottom;
-    margin-left: 4px;
-    margin-right: 4px;
+    margin-left: @metric-margin;
+    margin-right: @metric-margin;
   }
+}
+
+.ui.slim.divider{
+  margin: 0.4rem 0;
 }
