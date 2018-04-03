@@ -15,7 +15,11 @@
           size /= 1024.0;
           unit_pos += 1;
         }
-        size = Math.round(size * 10) / 10;
+        if (size < 1) {
+          size = Math.round(size * 100) / 100;
+        } else {
+          size = Math.round(size * 10) / 10;
+        }
         return "" + size + units[unit_pos];
       };
       percent_level = function(percent) {
