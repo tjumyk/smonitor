@@ -33,6 +33,10 @@
       };
       process_status_message = function(status) {
         var gpu, i, len, ref;
+        if (status.error) {
+          console.error(status.error);
+          return status;
+        }
         status.memory.total_h = human_size(status.memory.total);
         if (status.disk.system) {
           status.disk.system.total_h = human_size(status.disk.system.total);

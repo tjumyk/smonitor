@@ -21,6 +21,10 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
     return 'danger'
 
   process_status_message = (status)->
+    if status.error
+      console.error(status.error)
+      return status
+
     status.memory.total_h = human_size(status.memory.total)
     if status.disk.system
       status.disk.system.total_h = human_size(status.disk.system.total)
