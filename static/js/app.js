@@ -70,37 +70,50 @@
         }
         return status;
       };
-      return $http.get('api/config').then(function(response) {
-        var config, group, host, i, len, ref, results;
-        $scope.config = config = response.data;
+      return $http.get('api/basic').then(function(response) {
+        var config, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, ref, ref1, socket;
+        $scope.config = config = response.data.config;
+        $scope.info = response.data.info;
         config.site_title = config.site_name + ' \u00B7 System Monitor';
-        if (config.mode === 'node') {
-          config.host_groups = [];
-        }
-        ref = config.host_groups;
-        results = [];
-        for (i = 0, len = ref.length; i < len; i++) {
-          group = ref[i];
-          results.push((function() {
-            var j, len1, ref1, results1;
-            ref1 = group.hosts;
-            results1 = [];
+        $scope.socket = socket = io();
+        if (config.mode === 'app') {
+          host_map = {};
+          ref = config.host_groups;
+          for (i = 0, len = ref.length; i < len; i++) {
+            host_group = ref[i];
+            ref1 = host_group.hosts;
             for (j = 0, len1 = ref1.length; j < len1; j++) {
               host = ref1[j];
-              results1.push((function(host) {
-                var socket;
-                host.socket = socket = io("http://" + host.address + ":" + config.port);
-                return socket.on('status', function(message) {
-                  return $timeout(function() {
-                    return host.status = process_status_message(message);
-                  });
-                });
-              })(host));
+              host_map[host.name] = host;
             }
-            return results1;
-          })());
+          }
+          return socket.on('status', function(message) {
+            return $timeout(function() {
+              var name, results, status_message;
+              results = [];
+              for (name in message) {
+                status_message = message[name];
+                results.push(host_map[name].status = process_status_message(status_message));
+              }
+              return results;
+            });
+          });
+        } else {
+          local_host = {
+            name: 'local',
+            address: 'localhost'
+          };
+          local_host_group = {
+            name: 'Local Node',
+            hosts: [local_host]
+          };
+          config.host_groups = [local_host_group];
+          return socket.on('status', function(message) {
+            return $timeout(function() {
+              return local_host.status = process_status_message(message);
+            });
+          });
         }
-        return results;
       });
     }
   ]);

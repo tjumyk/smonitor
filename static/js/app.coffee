@@ -52,16 +52,32 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
 
     return status
 
-  $http.get('api/config').then (response)->
-    $scope.config = config = response.data
+  $http.get('api/basic').then (response)->
+    $scope.config = config =response.data.config
+    $scope.info = response.data.info
+
     config.site_title = config.site_name + ' \u00B7 System Monitor'
-    if(config.mode == 'node')
-      config.host_groups = []
-    for group in config.host_groups
-      for host in group.hosts
-        do (host)->
-          host.socket = socket = io("http://#{host.address}:#{config.port}")
-          socket.on 'status', (message)->
-            $timeout ->
-              host.status = process_status_message(message)
+    $scope.socket = socket = io()
+
+    if config.mode == 'app'
+      host_map = {}
+      for host_group in config.host_groups
+        for host in host_group.hosts
+          host_map[host.name] = host
+      socket.on 'status', (message)->
+        $timeout ->
+          for name, status_message of message
+            host_map[name].status = process_status_message(status_message)
+    else
+      local_host =
+        name: 'local'
+        address: 'localhost'
+      local_host_group =
+        name: 'Local Node'
+        hosts: [local_host]
+      config.host_groups = [local_host_group]
+
+      socket.on 'status', (message)->
+        $timeout ->
+          local_host.status = process_status_message(message)
 ])

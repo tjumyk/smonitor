@@ -1,23 +1,36 @@
 import json
 import sys
 import threading
+import time
 
 import psutil
+import requests
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
+from gevent import monkey
 
 import pynvml
+
+monkey.patch_all()
 
 app = Flask(__name__)
 with open('config.json') as f_config:
     config = json.load(f_config)
 app.config['SECRET_KEY'] = config['server']['secret']
 socket_io = SocketIO(app, async_mode='gevent')
+room_status_collection = 'status_collection'
 
 clients = 0
 clients_lock = threading.Lock()
 worker_thread = None
 worker_thread_lock = threading.Lock()
+
+nvml_inited = False
+nvml_init_failed = False
+static_info = {
+    'public': {},
+    'private': {}
+}
 
 
 @app.route('/')
@@ -25,11 +38,20 @@ def index():
     return app.send_static_file('index.html')
 
 
-@app.route('/api/config')
-def get_config():
-    conf = dict(config['monitor'])
-    conf['port'] = config['server']['port']
-    return jsonify(conf)
+@app.route('/api/basic')
+def get_basic_info():
+    _config = dict(config['monitor'])
+    _config['port'] = config['server']['port']
+    info = {
+        'config': _config,
+        'info': static_info['public']
+    }
+    return jsonify(info)
+
+
+@app.route('/api/status')
+def get_status():
+    return jsonify(_get_status())
 
 
 @socket_io.on('connect')
@@ -38,10 +60,9 @@ def socket_connect():
     with clients_lock:
         clients += 1
         print('[Socket Connected] ID=%s, total clients: %d' % (request.sid, clients))
-        if worker_thread is None:
-            with worker_thread_lock:
-                worker_thread = socket_io.start_background_task(target=status_worker)
-    emit('connected', {'clients': clients})
+        with worker_thread_lock:
+            if worker_thread is None:
+                worker_thread = socket_io.start_background_task(target=_status_worker)
 
 
 @socket_io.on('disconnect')
@@ -57,30 +78,21 @@ def socket_ping():
     emit('pong')
 
 
-def status_worker():
-    global worker_thread
-    print('[Background] Worker Started')
+def _init():
+    global nvml_inited, nvml_init_failed
+    if not nvml_init_failed:
+        try:
+            pynvml.nvmlInit()
+            nvml_inited = True
+            print('[NVML] NVML Initialized')
+            _update_nvml_static_info()
+        except pynvml.NVMLError as e:
+            nvml_init_failed = True
+            print('[NVML] NVML Not Initialized: %s' % str(e))
+            pass
 
-    nvml_inited = False
-    gpu_info_static = None
-    try:
-        pynvml.nvmlInit()
-        nvml_inited = True
-        print('[NVML] NVML Initialized')
-        gpu_info_static = _get_nvml_static_info()
-    except pynvml.NVMLError as e:
-        print('[NVML] NVML Not Initialized: %s' % str(e))
-        pass
 
-    while clients:
-        status = _get_status_psutil()
-        if gpu_info_static:
-            status.update(_get_status_nvml(gpu_info_static))
-        socket_io.emit('status', status, broadcast=True)
-        socket_io.sleep(config['monitor']['interval'])
-    with worker_thread_lock:
-        worker_thread = None
-
+def _clean_up():  # TODO when to call this?
     if nvml_inited:
         try:
             pynvml.nvmlShutdown()
@@ -88,28 +100,73 @@ def status_worker():
         except pynvml.NVMLError as e:
             print('[NVML] NVML Failed to Shutdown: %s' % str(e))
             pass
-    print('[Background] Worker Terminated')
 
 
-def _get_nvml_static_info():
+def _get_status():
+    status = _get_status_psutil()
+    if nvml_inited:
+        status['gpu'] = _get_status_nvml()
+    return status
+
+
+def _status_worker():
+    global worker_thread
+    print('[Status Worker] Worker Started')
+    interval = config['monitor']['interval']
+    app_mode = config['monitor']['mode'] == 'app'
+    batch_timeout = min(0.1, interval)
+    session = requests.session()
+    while clients:
+        start_time = time.time()
+        if app_mode:
+            status_map = {}
+            batch_start_time = time.time()
+            for host_group in config['monitor']['host_groups']:
+                for host in host_group['hosts']:
+                    address = host['address']
+                    port_num = host.get('port') or config['server']['port']
+                    status = json.loads(session.get("http://%s:%d/api/status" % (address, port_num)).content.decode())
+                    status_map[host['name']] = status
+                    if time.time() - batch_start_time > batch_timeout:
+                        socket_io.emit('status', status_map)
+                        status_map.clear()
+                        batch_start_time = time.time()
+            if status_map:
+                socket_io.emit('status', status_map)
+        else:
+            socket_io.emit('status', _get_status())
+        elapsed_time = time.time() - start_time
+        if elapsed_time < interval:
+            socket_io.sleep(interval - elapsed_time)
+        else:
+            print('[Status Worker] Iteration slower than configured interval: %ds' % elapsed_time)
+    with worker_thread_lock:
+        worker_thread = None
+    print('[Status Worker] Worker Terminated')
+
+
+def _update_nvml_static_info():
     # driver_version = pynvml.nvmlSystemGetDriverVersion().decode()
     # nvml_version = pynvml.nvmlSystemGetNVMLVersion().decode()
     device_count = pynvml.nvmlDeviceGetCount()
     devices = []
+    devices_handles = []
     for i in range(device_count):
         handle = pynvml.nvmlDeviceGetHandleByIndex(i)
         name = pynvml.nvmlDeviceGetName(handle).decode()
         devices.append({
-            'index': i,
-            'handle': handle,
+            # 'index': i,
             'name': name
         })
-    gpu_info_static = {
+        devices_handles.append(handle)
+    static_info['public']['gpu'] = {
         # 'driver': driver_version,
         # 'nvml': nvml_version,
         'devices': devices
     }
-    return gpu_info_static
+    static_info['private']['gpu'] = {
+        'handles': devices_handles
+    }
 
 
 def _get_status_psutil():
@@ -152,29 +209,29 @@ def _get_status_psutil():
     return status
 
 
-def _get_status_nvml(static_info):
-    devices_info = []
-    for device in static_info['devices']:
-        info = dict(device)
-        del info['handle']  # copy all fields except handle
-        handle = device['handle']
+def _get_status_nvml():
+    devices_status = []
+    for handle in static_info['private']['gpu']['handles']:
         util = pynvml.nvmlDeviceGetUtilizationRates(handle)
         mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         process_info = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
-
-        info['utilization'] = {'gpu': util.gpu, 'memory': util.memory}
-        info['memory'] = {
-            'total': mem_info.total,
-            'percent': int(1000.0 * mem_info.used / mem_info.total) / 10.0
+        _status = {
+            'utilization': {'gpu': util.gpu, 'memory': util.memory},
+            'memory': {
+                'total': mem_info.total,
+                'percent': int(1000.0 * mem_info.used / mem_info.total) / 10.0
+            },
+            'processes': len(process_info)
         }
         # info['processes'] = [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
-        info['processes'] = len(process_info)  # for security reasons, just provide the number of processes
-        devices_info.append(info)
+        devices_status.append(_status)
+    status = {
+        'devices': devices_status
+    }
+    return status
 
-    status = dict(static_info)
-    status['devices'] = devices_info
-    return {'gpu': status}
 
+_init()
 
 if __name__ == '__main__':
     port = config['server']['port']

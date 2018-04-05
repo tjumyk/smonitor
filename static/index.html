@@ -25,7 +25,7 @@
         <img class="ui image" src="static/image/logo.svg">
         <div class="content">
             {{config.site_name}}
-            <div class="sub header">System Monitor</div>
+            <div class="sub header">System Monitor <span ng-show="config.mode!='app'">(Mode: {{config.mode}})</span></div>
         </div>
     </h1>
     <div ng-repeat="host_group in config.host_groups" class="host-group">
@@ -90,8 +90,8 @@
                     <div class="metric-container">
                         <div ng-repeat="gpu in host.status.gpu.devices" class="metric-group" ng-class="{'success': gpu.processes>0}">
                             <div class="header">
-                                GPU {{gpu.index}}
-                                <div class="sub">{{gpu.name}}</div>
+                                GPU {{$index}}
+                                <div class="sub">{{info.gpu.devices[$index].name}}</div>
                             </div>
                             <div class="metric">
                                 <div class="header">GPU Utilization</div>
