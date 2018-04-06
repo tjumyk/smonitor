@@ -138,14 +138,11 @@ def _status_worker():
                         status = _get_remote_data(host, '/api/status', request_timeout, session)
                         status_map[name] = status
                         info = {}
-                        if 'error' in status or name not in host_info:
+                        existing_info = host_info.get(name)
+                        if 'error' in status or existing_info is None or 'error' in existing_info:
                             info = _get_remote_data(host, '/api/info', request_timeout, session)
                             info_map[name] = info
-                            if 'error' in info:
-                                if name in host_info:
-                                    del host_info[name]
-                            else:
-                                host_info[name] = info
+                            host_info[name] = info
                         if 'error' in status or 'error' in info:
                             if retry is not None:
                                 retry['wait'] = min(20, retry['wait'] * 2)
@@ -155,6 +152,10 @@ def _status_worker():
                                     'wait': 1,
                                     'wait_remain': 1
                                 }
+                        if 'error' in status:
+                            status['retry'] = retry
+                        if 'error' in info:
+                            info['retry'] = retry
                         else:
                             if retry is not None:
                                 del host_retry[name]
