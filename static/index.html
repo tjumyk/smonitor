@@ -25,7 +25,7 @@
         <img class="ui image" src="static/image/logo.svg">
         <div class="content">
             {{config.site_name}}
-            <div class="sub header">System Monitor <span ng-show="config.mode!='app'">(Mode: {{config.mode}})</span></div>
+            <div class="sub header">System Monitor <span ng-show="config && config.mode!='app'">(Mode: {{config.mode}})</span></div>
         </div>
     </h1>
     <div ng-repeat="host_group in config.host_groups" class="host-group">
