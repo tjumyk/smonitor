@@ -5,7 +5,7 @@ body {
   display: inline-block;
   font-size: 1.6em;
   line-height: 1.2em;
-  margin: 0.2rem;
+  margin: 0.25rem;
   text-align: right;
   max-width: 90px;
 }
@@ -28,7 +28,7 @@ body {
 }
 .metric-group {
   display: inline-block;
-  margin: 0.2rem;
+  margin: 0.25rem;
   border-radius: .28571429rem;
   border: 1px solid rgba(34, 36, 38, 0.15);
   box-shadow: 0 1px 2px 0 rgba(34, 36, 38, 0.15);
@@ -40,7 +40,7 @@ body {
   font-weight: 700;
   background-color: #e8e8e8;
   border-radius: .21428571rem .21428571rem 0 0;
-  padding: 0.25em 0.2rem;
+  padding: 0.25em 0.25rem;
 }
 .metric-group > .header .sub {
   float: right;
@@ -69,11 +69,14 @@ body {
   color: #fff;
 }
 .metric-container {
-  margin: -0.2rem;
+  margin: -0.25rem;
+}
+.metric-wrapper {
+  display: inline-block;
 }
 .ui.host.header {
   display: inline-block;
-  margin: 0.2rem;
+  margin: 0.25rem;
 }
 .ui.host.header .sub.header {
   font-size: 0.6em;
@@ -89,10 +92,17 @@ body {
   height: 4em;
   display: inline-block;
   vertical-align: bottom;
-  margin-left: 0.2rem;
-  margin-right: 0.2rem;
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
 }
 .ui.slim.divider {
   margin: 0.4rem 0;
+}
+.host-error {
+  display: inline-block;
+  font-size: 1.4em;
+  color: #db2828 !important;
+  vertical-align: top;
+  margin: 0.9em 0.25rem;
 }
 /*# sourceMappingURL=app.css.map */

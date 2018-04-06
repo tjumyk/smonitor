@@ -2,7 +2,7 @@
 @color-warning: #fbbd08 !important;
 @color-danger: #db2828 !important;
 
-@metric-margin: 0.2rem;
+@metric-margin: 0.25rem;
 
 body {
   padding-top: 2rem;
@@ -80,6 +80,9 @@ body {
 .metric-container{
   margin: -@metric-margin;
 }
+.metric-wrapper{
+  display: inline-block;
+}
 
 .ui.host.header {
   display: inline-block;
@@ -109,4 +112,11 @@ body {
 
 .ui.slim.divider{
   margin: 0.4rem 0;
+}
+.host-error{
+  display: inline-block;
+  font-size: 1.4em;
+  color: @color-danger;
+  vertical-align: top;
+  margin: 0.9em @metric-margin;
 }

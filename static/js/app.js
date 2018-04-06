@@ -81,6 +81,8 @@
             percent_h: 'N/A'
           };
         }
+        status.cpu.percent_h = status.cpu.percent + '%';
+        status.memory.percent_h = status.memory.percent + '%';
         status.cpu.percent_level = percent_level(status.cpu.percent);
         status.memory.percent_level = percent_level(status.memory.percent);
         return status;

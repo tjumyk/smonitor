@@ -152,10 +152,6 @@ def _status_worker():
                                     'wait': 1,
                                     'wait_remain': 1
                                 }
-                        if 'error' in status:
-                            status['retry'] = retry
-                        if 'error' in info:
-                            info['retry'] = retry
                         else:
                             if retry is not None:
                                 del host_retry[name]
