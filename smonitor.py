@@ -125,25 +125,38 @@ def _status_worker():
                 for host in host_group['hosts']:
                     address = host['address']
                     port_num = host.get('port') or config['server']['port']
-                    response = session.get("http://%s:%d/api/status" % (address, port_num))
-                    if response.status_code != 200:
+                    response = None
+                    status = None
+                    try:
+                        response = session.get("http://%s:%d/api/status" % (address, port_num), timeout=(0.1, interval))
+                    except Exception as e:
                         status = {
                             "error": {
-                                "type": "remote_request_status",
-                                "message": "Error response (%d) when requesting status of remote host" %
-                                           response.status_code
+                                "type": "remote_connection",
+                                "message": "Failed to connect to remote host",
+                                "exception": str(e)
                             }
                         }
-                    else:
-                        try:
-                            status = json.loads(response.content.decode())
-                        except Exception as e:
+                    if response is not None:
+                        if response.status_code != 200:
                             status = {
                                 "error": {
-                                    "type": "remote_status_parsing",
-                                    "message": "Failed to parse status of remote host: %s" % str(e)
+                                    "type": "remote_status_request",
+                                    "message": "Error response (%d) when requesting status of remote host" %
+                                               response.status_code
                                 }
                             }
+                        else:
+                            try:
+                                status = json.loads(response.content.decode())
+                            except Exception as e:
+                                status = {
+                                    "error": {
+                                        "type": "remote_status_parsing",
+                                        "message": "Failed to parse status of remote host",
+                                        "exception": str(e)
+                                    }
+                                }
                     status_map[host['name']] = status
                     if time.time() - batch_start_time > batch_timeout:
                         socket_io.emit('status', status_map)
