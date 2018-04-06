@@ -8,6 +8,7 @@ import requests
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
 from gevent import monkey
+from requests.adapters import HTTPAdapter
 
 import pynvml
 
@@ -115,7 +116,12 @@ def _status_worker():
     interval = config['monitor']['interval']
     app_mode = config['monitor']['mode'] == 'app'
     batch_timeout = min(0.1, interval)
+
     session = requests.session()
+    adapter = HTTPAdapter(pool_maxsize=100)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
     while clients:
         start_time = time.time()
         if app_mode:
