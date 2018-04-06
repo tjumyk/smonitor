@@ -20,45 +20,47 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
       return 'warning'
     return 'danger'
 
+  process_info_message = (info)->
+    if info.error
+      return info
+    info.memory.total_h = human_size(info.memory.total)
+    if info.disk.system
+      info.disk.system.total_h = human_size(info.disk.system.total)
+    else
+      info.disk.system =
+        total_h: 'N/A'
+    if info.disk.others
+      info.disk.others.total_h = human_size(info.disk.others.total)
+    else
+      info.disk.others =
+        total_h: 'N/A'
+    info.up_time = moment.unix(info.boot_time).toNow(true)
+    if info.gpu
+      for gpu in info.gpu.devices
+        gpu.memory.total_h = human_size(gpu.memory.total)
+    return info
+
   process_status_message = (status)->
     if status.error
-      console.error(status.error)
       return status
-
-    status.memory.total_h = human_size(status.memory.total)
     if status.disk.system
-      status.disk.system.total_h = human_size(status.disk.system.total)
       status.disk.system.percent_h = status.disk.system.percent + '%'
+      status.disk.system.percent_level = percent_level(status.disk.system.percent)
     else
       status.disk.system =
-        total_h: 'N/A'
         percent_h: 'N/A'
     if status.disk.others
-      status.disk.others.total_h = human_size(status.disk.others.total)
       status.disk.others.percent_h = status.disk.others.percent + '%'
+      status.disk.others.percent_level = percent_level(status.disk.others.percent)
     else
       status.disk.others =
-        total_h: 'N/A'
         percent_h: 'N/A'
-
-    status.up_time = moment.unix(status.boot_time).toNow(true)
-
     status.cpu.percent_level = percent_level(status.cpu.percent)
     status.memory.percent_level = percent_level(status.memory.percent)
-    if status.disk.system.total
-      status.disk.system.percent_level = percent_level(status.disk.system.percent)
-    if status.disk.others.total
-      status.disk.others.percent_level = percent_level(status.disk.others.percent)
-
-    if status.gpu
-      for gpu in status.gpu.devices
-        gpu.memory.total_h = human_size(gpu.memory.total)
-
     return status
 
-  $http.get('api/basic').then (response)->
-    $scope.config = config =response.data.config
-    $scope.info = response.data.info
+  $http.get('api/config').then (response)->
+    $scope.config = config = response.data
 
     config.site_title = config.site_name + ' \u00B7 System Monitor'
     $scope.socket = socket = io({
@@ -70,6 +72,10 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
       for host_group in config.host_groups
         for host in host_group.hosts
           host_map[host.name] = host
+      socket.on 'info', (message)->
+        $timeout ->
+          for name, info_message of message
+            host_map[name].info = process_info_message(info_message)
       socket.on 'status', (message)->
         $timeout ->
           for name, status_message of message
@@ -82,7 +88,9 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
         name: 'Local Node'
         hosts: [local_host]
       config.host_groups = [local_host_group]
-
+      socket.on 'info', (message)->
+        $timeout ->
+          local_host.info = process_info_message(message)
       socket.on 'status', (message)->
         $timeout ->
           local_host.status = process_status_message(message)

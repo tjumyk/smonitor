@@ -27,11 +27,11 @@ worker_thread = None
 worker_thread_lock = threading.Lock()
 
 nvml_inited = False
-nvml_init_failed = False
 static_info = {
     'public': {},
     'private': {}
 }
+host_info = {}
 
 
 @app.route('/')
@@ -39,15 +39,16 @@ def index():
     return app.send_static_file('index.html')
 
 
-@app.route('/api/basic')
-def get_basic_info():
+@app.route('/api/config')
+def get_config():
     _config = dict(config['monitor'])
     _config['port'] = config['server']['port']
-    info = {
-        'config': _config,
-        'info': static_info['public']
-    }
-    return jsonify(info)
+    return jsonify(_config)
+
+
+@app.route('/api/info')
+def get_static_info():
+    return jsonify(static_info['public'])
 
 
 @app.route('/api/status')
@@ -64,6 +65,10 @@ def socket_connect():
         with worker_thread_lock:
             if worker_thread is None:
                 worker_thread = socket_io.start_background_task(target=_status_worker)
+    if config['monitor']['mode'] == 'app':
+        emit('info', host_info)
+    else:
+        emit('info', static_info['public'])
 
 
 @socket_io.on('disconnect')
@@ -80,17 +85,16 @@ def socket_ping():
 
 
 def _init():
-    global nvml_inited, nvml_init_failed
-    if not nvml_init_failed:
-        try:
-            pynvml.nvmlInit()
-            nvml_inited = True
-            print('[NVML] NVML Initialized')
-            _update_nvml_static_info()
-        except pynvml.NVMLError as e:
-            nvml_init_failed = True
-            print('[NVML] NVML Not Initialized: %s' % str(e))
-            pass
+    global nvml_inited
+    _update_psutil_static_info()
+    try:
+        pynvml.nvmlInit()
+        nvml_inited = True
+        print('[NVML] NVML Initialized')
+        _update_nvml_static_info()
+    except pynvml.NVMLError as e:
+        print('[NVML] NVML Not Initialized: %s' % str(e))
+        pass
 
 
 def _clean_up():  # TODO when to call this?
@@ -118,23 +122,32 @@ def _status_worker():
     request_timeout = (0.2, interval)
     batch_timeout = min(0.2, interval)
 
-    session = requests.session()
-    adapter = HTTPAdapter(pool_maxsize=100)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
-
+    session = _build_session()
     while clients:
         start_time = time.time()
         if app_mode:
             status_map = {}
+            info_map = {}
             batch_start_time = time.time()
             for host_group in config['monitor']['host_groups']:
                 for host in host_group['hosts']:
-                    status_map[host['name']] = _get_remote_status(host, request_timeout, session)
+                    name = host['name']
+                    status = _get_remote_data(host, '/api/status', request_timeout, session)
+                    status_map[name] = status
+                    if 'error' in status or name not in host_info:
+                        info = _get_remote_data(host, '/api/info', request_timeout, session)
+                        info_map[name] = info
+                        if 'error' not in info:
+                            host_info[name] = info
                     if time.time() - batch_start_time > batch_timeout:
+                        if info_map:
+                            socket_io.emit('info', info_map)
                         socket_io.emit('status', status_map)
+                        info_map.clear()
                         status_map.clear()
                         batch_start_time = time.time()
+            if info_map:
+                socket_io.emit('info', info_map)
             if status_map:
                 socket_io.emit('status', status_map)
         else:
@@ -149,15 +162,23 @@ def _status_worker():
     print('[Status Worker] Worker Terminated')
 
 
-def _get_remote_status(host, timeout, session):
+def _build_session():
+    session = requests.session()
+    adapter = HTTPAdapter(pool_maxsize=100)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+
+def _get_remote_data(host, path, timeout, session):
     address = host['address']
     port_num = host.get('port') or config['server']['port']
     response = None
-    status = None
+    data = None
     try:
-        response = session.get("http://%s:%d/api/status" % (address, port_num), timeout=timeout)
+        response = session.get("http://%s:%d%s" % (address, port_num, path), timeout=timeout)
     except Exception as e:
-        status = {
+        data = {
             "error": {
                 "type": "remote_connection",
                 "message": "Failed to connect to remote host",
@@ -166,7 +187,7 @@ def _get_remote_status(host, timeout, session):
         }
     if response is not None:
         if response.status_code != 200:
-            status = {
+            data = {
                 "error": {
                     "type": "remote_status_request",
                     "message": "Error response (%d) when requesting status of remote host" %
@@ -175,40 +196,84 @@ def _get_remote_status(host, timeout, session):
             }
         else:
             try:
-                status = json.loads(response.content.decode())
+                data = json.loads(response.content.decode())
             except Exception as e:
-                status = {
+                data = {
                     "error": {
                         "type": "remote_status_parsing",
                         "message": "Failed to parse status of remote host",
                         "exception": str(e)
                     }
                 }
-    return status
+    return data
+
+
+def _update_psutil_static_info():
+    vm = psutil.virtual_memory()
+    sys_partition = None
+    boot_partition = None
+    other_partitions = None
+    other_partitions_total = 0
+    other_partitions_used = 0
+    for part in psutil.disk_partitions():
+        usage = psutil.disk_usage(part.mountpoint)
+        if part.mountpoint == '/':
+            sys_partition = {'total': usage.total}
+        elif part.mountpoint == '/boot/efi':
+            boot_partition = {'total': usage.total}
+        else:
+            other_partitions_total += usage.total
+            other_partitions_used += usage.used
+    if other_partitions_total > 0:
+        other_partitions = {
+            'total': other_partitions_total
+        }
+    static_info['public'].update({
+        'cpu': {
+            'count': psutil.cpu_count()
+        },
+        'memory': {
+            'total': vm.total
+        },
+        'disk': {
+            'system': sys_partition,
+            'boot': boot_partition,
+            'others': other_partitions
+        },
+        'boot_time': psutil.boot_time()
+    })
 
 
 def _update_nvml_static_info():
-    # driver_version = pynvml.nvmlSystemGetDriverVersion().decode()
-    # nvml_version = pynvml.nvmlSystemGetNVMLVersion().decode()
+    driver_version = pynvml.nvmlSystemGetDriverVersion().decode()
+    nvml_version = pynvml.nvmlSystemGetNVMLVersion().decode()
     device_count = pynvml.nvmlDeviceGetCount()
     devices = []
     devices_handles = []
     for i in range(device_count):
         handle = pynvml.nvmlDeviceGetHandleByIndex(i)
         name = pynvml.nvmlDeviceGetName(handle).decode()
+        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         devices.append({
-            # 'index': i,
-            'name': name
+            'index': i,
+            'name': name,
+            'memory': {
+                'total': mem_info.total
+            }
         })
         devices_handles.append(handle)
-    static_info['public']['gpu'] = {
-        # 'driver': driver_version,
-        # 'nvml': nvml_version,
-        'devices': devices
-    }
-    static_info['private']['gpu'] = {
-        'handles': devices_handles
-    }
+    static_info['public'].update({
+        'gpu': {
+            'driver': driver_version,
+            'nvml': nvml_version,
+            'devices': devices
+        }
+    })
+    static_info['private'].update({
+        'gpu': {
+            'handles': devices_handles
+        }
+    })
 
 
 def _get_status_psutil():
@@ -221,32 +286,28 @@ def _get_status_psutil():
     for part in psutil.disk_partitions():
         usage = psutil.disk_usage(part.mountpoint)
         if part.mountpoint == '/':
-            sys_partition = {'total': usage.total, 'percent': usage.percent}
+            sys_partition = {'percent': usage.percent}
         elif part.mountpoint == '/boot/efi':
-            boot_partition = {'total': usage.total, 'percent': usage.percent}
+            boot_partition = {'percent': usage.percent}
         else:
             other_partitions_total += usage.total
             other_partitions_used += usage.used
     if other_partitions_total > 0:
         other_partitions = {
-            'total': other_partitions_total,
             'percent': round(1000.0 * other_partitions_used / other_partitions_total) / 10.0
         }
     status = {
         'cpu': {
-            'count': psutil.cpu_count(),
             'percent': psutil.cpu_percent()
         },
         'memory': {
-            'total': vm.total,
             'percent': vm.percent
         },
         'disk': {
             'system': sys_partition,
             'boot': boot_partition,
             'others': other_partitions
-        },
-        'boot_time': psutil.boot_time()
+        }
     }
     return status
 
@@ -260,7 +321,6 @@ def _get_status_nvml():
         _status = {
             'utilization': {'gpu': util.gpu, 'memory': util.memory},
             'memory': {
-                'total': mem_info.total,
                 'percent': int(1000.0 * mem_info.used / mem_info.total) / 10.0
             },
             'processes': len(process_info)

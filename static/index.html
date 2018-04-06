@@ -50,7 +50,7 @@
                     </div>
                     <div class="metric">
                         <div class="header">CPU Threads</div>
-                        <div class="content">{{host.status.cpu.count}}</div>
+                        <div class="content">{{host.info.cpu.count}}</div>
                     </div>
                     <div class="bar"></div>
                     <div class="metric">
@@ -59,7 +59,7 @@
                     </div>
                     <div class="metric">
                         <div class="header">Memory Size</div>
-                        <div class="content">{{host.status.memory.total_h}}</div>
+                        <div class="content">{{host.info.memory.total_h}}</div>
                     </div>
                     <div class="bar"></div>
                     <div class="metric">
@@ -68,7 +68,7 @@
                     </div>
                     <div class="metric">
                         <div class="header">System Partition Size</div>
-                        <div class="content">{{host.status.disk.system.total_h}}</div>
+                        <div class="content">{{host.info.disk.system.total_h}}</div>
                     </div>
                     <div class="bar"></div>
                     <div class="metric">
@@ -77,29 +77,29 @@
                     </div>
                     <div class="metric">
                         <div class="header">Other Partitions Total Size</div>
-                        <div class="content">{{host.status.disk.others.total_h}}</div>
+                        <div class="content">{{host.info.disk.others.total_h}}</div>
                     </div>
                     <div class="bar"></div>
                     <div class="metric wide">
                         <div class="header">Up Time</div>
-                        <div class="content">{{host.status.up_time}}</div>
+                        <div class="content">{{host.info.up_time}}</div>
                     </div>
                 </div>
                 <div ng-show="host.status.gpu">
                     <div class="ui slim divider"></div>
                     <div class="metric-container">
-                        <div ng-repeat="gpu in host.status.gpu.devices" class="metric-group" ng-class="{'success': gpu.processes>0}">
+                        <div ng-repeat="gpu in host.info.gpu.devices" class="metric-group" ng-class="{'success': gpu.processes>0}">
                             <div class="header">
-                                GPU {{$index}}
-                                <div class="sub">{{info.gpu.devices[$index].name}}</div>
+                                GPU {{gpu.index}}
+                                <div class="sub">{{gpu.name}}</div>
                             </div>
                             <div class="metric">
                                 <div class="header">GPU Utilization</div>
-                                <div class="content">{{gpu.utilization.gpu}}%</div>
+                                <div class="content">{{host.status.gpu.devices[gpu.index].utilization.gpu}}%</div>
                             </div>
                             <div class="metric">
                                 <div class="header">Memory Utilization</div>
-                                <div class="content">{{gpu.memory.percent}}%</div>
+                                <div class="content">{{host.status.gpu.devices[gpu.index].memory.percent}}%</div>
                             </div>
                             <div class="metric">
                                 <div class="header">Memory Size</div>

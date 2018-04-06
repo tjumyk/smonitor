@@ -6,7 +6,7 @@
 
   app.controller('MainController', [
     '$scope', '$http', '$timeout', function($scope, $http, $timeout) {
-      var human_size, percent_level, process_status_message;
+      var human_size, percent_level, process_info_message, process_status_message;
       human_size = function(size) {
         var unit_pos, units;
         units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -31,53 +31,63 @@
         }
         return 'danger';
       };
-      process_status_message = function(status) {
+      process_info_message = function(info) {
         var gpu, i, len, ref;
-        if (status.error) {
-          console.error(status.error);
-          return status;
+        if (info.error) {
+          return info;
         }
-        status.memory.total_h = human_size(status.memory.total);
-        if (status.disk.system) {
-          status.disk.system.total_h = human_size(status.disk.system.total);
-          status.disk.system.percent_h = status.disk.system.percent + '%';
+        info.memory.total_h = human_size(info.memory.total);
+        if (info.disk.system) {
+          info.disk.system.total_h = human_size(info.disk.system.total);
         } else {
-          status.disk.system = {
-            total_h: 'N/A',
-            percent_h: 'N/A'
+          info.disk.system = {
+            total_h: 'N/A'
           };
         }
-        if (status.disk.others) {
-          status.disk.others.total_h = human_size(status.disk.others.total);
-          status.disk.others.percent_h = status.disk.others.percent + '%';
+        if (info.disk.others) {
+          info.disk.others.total_h = human_size(info.disk.others.total);
         } else {
-          status.disk.others = {
-            total_h: 'N/A',
-            percent_h: 'N/A'
+          info.disk.others = {
+            total_h: 'N/A'
           };
         }
-        status.up_time = moment.unix(status.boot_time).toNow(true);
-        status.cpu.percent_level = percent_level(status.cpu.percent);
-        status.memory.percent_level = percent_level(status.memory.percent);
-        if (status.disk.system.total) {
-          status.disk.system.percent_level = percent_level(status.disk.system.percent);
-        }
-        if (status.disk.others.total) {
-          status.disk.others.percent_level = percent_level(status.disk.others.percent);
-        }
-        if (status.gpu) {
-          ref = status.gpu.devices;
+        info.up_time = moment.unix(info.boot_time).toNow(true);
+        if (info.gpu) {
+          ref = info.gpu.devices;
           for (i = 0, len = ref.length; i < len; i++) {
             gpu = ref[i];
             gpu.memory.total_h = human_size(gpu.memory.total);
           }
         }
+        return info;
+      };
+      process_status_message = function(status) {
+        if (status.error) {
+          return status;
+        }
+        if (status.disk.system) {
+          status.disk.system.percent_h = status.disk.system.percent + '%';
+          status.disk.system.percent_level = percent_level(status.disk.system.percent);
+        } else {
+          status.disk.system = {
+            percent_h: 'N/A'
+          };
+        }
+        if (status.disk.others) {
+          status.disk.others.percent_h = status.disk.others.percent + '%';
+          status.disk.others.percent_level = percent_level(status.disk.others.percent);
+        } else {
+          status.disk.others = {
+            percent_h: 'N/A'
+          };
+        }
+        status.cpu.percent_level = percent_level(status.cpu.percent);
+        status.memory.percent_level = percent_level(status.memory.percent);
         return status;
       };
-      return $http.get('api/basic').then(function(response) {
+      return $http.get('api/config').then(function(response) {
         var config, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, ref, ref1, socket;
-        $scope.config = config = response.data.config;
-        $scope.info = response.data.info;
+        $scope.config = config = response.data;
         config.site_title = config.site_name + ' \u00B7 System Monitor';
         $scope.socket = socket = io({
           path: window.location.pathname + 'socket.io'
@@ -93,6 +103,17 @@
               host_map[host.name] = host;
             }
           }
+          socket.on('info', function(message) {
+            return $timeout(function() {
+              var info_message, name, results;
+              results = [];
+              for (name in message) {
+                info_message = message[name];
+                results.push(host_map[name].info = process_info_message(info_message));
+              }
+              return results;
+            });
+          });
           return socket.on('status', function(message) {
             return $timeout(function() {
               var name, results, status_message;
@@ -114,6 +135,11 @@
             hosts: [local_host]
           };
           config.host_groups = [local_host_group];
+          socket.on('info', function(message) {
+            return $timeout(function() {
+              return local_host.info = process_info_message(message);
+            });
+          });
           return socket.on('status', function(message) {
             return $timeout(function() {
               return local_host.status = process_status_message(message);
