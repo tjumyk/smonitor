@@ -79,7 +79,9 @@
         $scope.config = config = response.data.config;
         $scope.info = response.data.info;
         config.site_title = config.site_name + ' \u00B7 System Monitor';
-        $scope.socket = socket = io(window.location.href + '/socket.io');
+        $scope.socket = socket = io({
+          path: window.location.pathname + 'socket.io'
+        });
         if (config.mode === 'app') {
           host_map = {};
           ref = config.host_groups;
