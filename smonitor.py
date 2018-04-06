@@ -115,7 +115,8 @@ def _status_worker():
     print('[Status Worker] Worker Started')
     interval = config['monitor']['interval']
     app_mode = config['monitor']['mode'] == 'app'
-    batch_timeout = min(0.1, interval)
+    request_timeout = (0.2, interval)
+    batch_timeout = min(0.2, interval)
 
     session = requests.session()
     adapter = HTTPAdapter(pool_maxsize=100)
@@ -129,41 +130,7 @@ def _status_worker():
             batch_start_time = time.time()
             for host_group in config['monitor']['host_groups']:
                 for host in host_group['hosts']:
-                    address = host['address']
-                    port_num = host.get('port') or config['server']['port']
-                    response = None
-                    status = None
-                    try:
-                        response = session.get("http://%s:%d/api/status" % (address, port_num), timeout=(0.1, interval))
-                    except Exception as e:
-                        status = {
-                            "error": {
-                                "type": "remote_connection",
-                                "message": "Failed to connect to remote host",
-                                "exception": str(e)
-                            }
-                        }
-                    if response is not None:
-                        if response.status_code != 200:
-                            status = {
-                                "error": {
-                                    "type": "remote_status_request",
-                                    "message": "Error response (%d) when requesting status of remote host" %
-                                               response.status_code
-                                }
-                            }
-                        else:
-                            try:
-                                status = json.loads(response.content.decode())
-                            except Exception as e:
-                                status = {
-                                    "error": {
-                                        "type": "remote_status_parsing",
-                                        "message": "Failed to parse status of remote host",
-                                        "exception": str(e)
-                                    }
-                                }
-                    status_map[host['name']] = status
+                    status_map[host['name']] = _get_remote_status(host, request_timeout, session)
                     if time.time() - batch_start_time > batch_timeout:
                         socket_io.emit('status', status_map)
                         status_map.clear()
@@ -180,6 +147,44 @@ def _status_worker():
     with worker_thread_lock:
         worker_thread = None
     print('[Status Worker] Worker Terminated')
+
+
+def _get_remote_status(host, timeout, session):
+    address = host['address']
+    port_num = host.get('port') or config['server']['port']
+    response = None
+    status = None
+    try:
+        response = session.get("http://%s:%d/api/status" % (address, port_num), timeout=timeout)
+    except Exception as e:
+        status = {
+            "error": {
+                "type": "remote_connection",
+                "message": "Failed to connect to remote host",
+                "exception": str(e)
+            }
+        }
+    if response is not None:
+        if response.status_code != 200:
+            status = {
+                "error": {
+                    "type": "remote_status_request",
+                    "message": "Error response (%d) when requesting status of remote host" %
+                               response.status_code
+                }
+            }
+        else:
+            try:
+                status = json.loads(response.content.decode())
+            except Exception as e:
+                status = {
+                    "error": {
+                        "type": "remote_status_parsing",
+                        "message": "Failed to parse status of remote host",
+                        "exception": str(e)
+                    }
+                }
+    return status
 
 
 def _update_nvml_static_info():
