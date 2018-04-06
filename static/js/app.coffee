@@ -61,7 +61,7 @@ app.controller('MainController', ['$scope', '$http', '$timeout', ($scope, $http,
     $scope.info = response.data.info
 
     config.site_title = config.site_name + ' \u00B7 System Monitor'
-    $scope.socket = socket = io()
+    $scope.socket = socket = io(window.location.href+'/socket.io')
 
     if config.mode == 'app'
       host_map = {}
