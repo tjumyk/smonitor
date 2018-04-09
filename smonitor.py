@@ -127,44 +127,7 @@ def _status_worker():
     while clients:
         start_time = time.time()
         if app_mode:
-            status_map = {}
-            info_map = {}
-            batch_start_time = time.time()
-            for host_group in config['monitor']['host_groups']:
-                for host in host_group['hosts']:
-                    name = host['name']
-                    retry = host_retry.get(name)
-                    if retry is None or retry['wait_remain'] <= 0:
-                        status = _get_remote_data(host, '/api/status', request_timeout, session)
-                        status_map[name] = status
-                        info = {}
-                        existing_info = host_info.get(name)
-                        if 'error' in status or existing_info is None or 'error' in existing_info:
-                            info = _get_remote_data(host, '/api/info', request_timeout, session)
-                            info_map[name] = info
-                            host_info[name] = info
-                        if 'error' in status or 'error' in info:
-                            if retry is not None:
-                                retry['wait'] = min(20, retry['wait'] * 2)
-                                retry['wait_remain'] = retry['wait']
-                            else:
-                                host_retry[name] = {
-                                    'wait': 1,
-                                    'wait_remain': 1
-                                }
-                        else:
-                            if retry is not None:
-                                del host_retry[name]
-                                retry = None
-                    if retry is not None:
-                        retry['wait_remain'] -= 1
-                    if time.time() - batch_start_time > batch_timeout:
-                        if info_map:
-                            socket_io.emit('info', info_map)
-                        socket_io.emit('status', status_map)
-                        info_map.clear()
-                        status_map.clear()
-                        batch_start_time = time.time()
+            info_map, status_map = _collect_remote_status(session, host_retry, request_timeout, batch_timeout)
             if info_map:
                 socket_io.emit('info', info_map)
             if status_map:
@@ -179,6 +142,48 @@ def _status_worker():
     with worker_thread_lock:
         worker_thread = None
     print('[Status Worker] Worker Terminated')
+
+
+def _collect_remote_status(session, host_retry, request_timeout, batch_timeout):
+    status_map = {}
+    info_map = {}
+    batch_start_time = time.time()
+    for host_group in config['monitor']['host_groups']:
+        for host in host_group['hosts']:
+            name = host['name']
+            retry = host_retry.get(name)
+            if retry is None or retry['wait_remain'] <= 0:
+                status = _get_remote_data(host, '/api/status', request_timeout, session)
+                status_map[name] = status
+                info = {}
+                existing_info = host_info.get(name)
+                if 'error' in status or existing_info is None or 'error' in existing_info:
+                    info = _get_remote_data(host, '/api/info', request_timeout, session)
+                    info_map[name] = info
+                    host_info[name] = info
+                if 'error' in status or 'error' in info:
+                    if retry is not None:
+                        retry['wait'] = min(20, retry['wait'] * 2)
+                        retry['wait_remain'] = retry['wait']
+                    else:
+                        host_retry[name] = {
+                            'wait': 1,
+                            'wait_remain': 1
+                        }
+                else:
+                    if retry is not None:
+                        del host_retry[name]
+                        retry = None
+            if retry is not None:
+                retry['wait_remain'] -= 1
+            if time.time() - batch_start_time > batch_timeout:
+                if info_map:
+                    socket_io.emit('info', info_map)
+                socket_io.emit('status', status_map)
+                info_map.clear()
+                status_map.clear()
+                batch_start_time = time.time()
+    return info_map, status_map
 
 
 def _build_session():
