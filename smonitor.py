@@ -149,6 +149,7 @@ def socket_update(host_id):
             break
     if host:
         result = _get_remote_data(host, '/api/self_update', (0.2, 60))
+        del host_info[host_id]  # force update host info
         emit('update_result', {host_id: result})
 
 
