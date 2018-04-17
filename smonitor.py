@@ -76,9 +76,7 @@ def self_update():
     print('[Self Update] Started')
     try:
         subprocess.run(['git', 'pull'], check=True)
-        response = requests.get("http://%s:%d/restart" % (config['manager']['host'], config['manager']['port']))
-        if response.status_code != 200:
-            raise RuntimeError("[Manager Error] %s" % response.json()['error'])
+        socket_io.start_background_task(target=_restart)
     except Exception as e:
         error = str(e)
         print('[Self Update] Failed: %s' % error)
@@ -176,6 +174,10 @@ def _clean_up():  # TODO when to call this?
         except pynvml.NVMLError as e:
             print('[NVML] NVML Failed to Shutdown: %s' % str(e))
             pass
+
+
+def _restart():
+    requests.get("http://%s:%d/restart" % (config['manager']['host'], config['manager']['port']))
 
 
 def _get_status():
