@@ -76,7 +76,7 @@ def self_update():
     print('[Self Update] Started')
     try:
         subprocess.run(['git', 'fetch'], check=True)
-        labels = subprocess.check_output(['git', 'describe', '--always', 'FETCH_HEAD', 'HEAD']).decode().strip().split()
+        labels = subprocess.check_output(['git', 'describe', '--always', 'HEAD', 'FETCH_HEAD']).decode().strip().split()
         from_label = labels[0]
         to_label = labels[1]
         if from_label == to_label:
