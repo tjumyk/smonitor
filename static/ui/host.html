@@ -9,7 +9,14 @@
     <div class="ui breadcrumb">
         <a class="section" href="#!/">All Servers</a>
         <i class="right angle icon divider"></i>
-        <a class="section">{{host_group.name}}</a>
+        <div class="section">
+            <div class="ui simple dropdown">
+                <div class="text">{{host_group.name}}</div>
+                <div class="menu">
+                    <a class="item" ng-repeat="h in host_group.hosts" ng-href="#!/hosts/{{h.name}}">{{h.name}}</a>
+                </div>
+            </div>
+        </div>
         <i class="right angle icon divider"></i>
         <div class="active section">{{host.name}}</div>
     </div>
