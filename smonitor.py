@@ -228,13 +228,7 @@ def _status_worker():
     while clients:
         start_time = time.time()
         if app_mode:
-            info_map, status_map, full_status_map = _collect_remote_status(host_retry, request_timeout, batch_timeout)
-            if info_map:
-                socket_io.emit('info', info_map)
-            if status_map:
-                socket_io.emit('status', status_map)
-            for host, status in full_status_map.items():
-                socket_io.emit('full_status', {host: status}, room=host)
+            _collect_remote_status(host_retry, request_timeout, batch_timeout)
         else:
             if enabled_full_status:
                 full_status = _get_full_status()
@@ -256,9 +250,9 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
     status_map = {}
     full_status_map = {}
     info_map = {}
-    batch_start_time = time.time()
     rooms = socket_io.server.manager.rooms.get('/')
 
+    batch_start_time = time.time()
     for host_group in config['monitor']['host_groups']:
         for host in host_group['hosts']:
             name = host['name']
@@ -289,7 +283,7 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
                         retry['wait'] = min(20, retry['wait'] * 2)
                         retry['wait_remain'] = retry['wait']
                     else:
-                        host_retry[name] = {
+                        host_retry[name] = retry = {
                             'wait': 1,
                             'wait_remain': 1
                         }
@@ -302,12 +296,22 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
             if time.time() - batch_start_time > batch_timeout:
                 if info_map:
                     socket_io.emit('info', info_map)
-                socket_io.emit('status', status_map)
+                if status_map:
+                    socket_io.emit('status', status_map)
+                for host_name, status in full_status_map.items():
+                    socket_io.emit('full_status', {host_name: status}, room=host_name)
                 info_map.clear()
                 status_map.clear()
                 full_status_map.clear()
                 batch_start_time = time.time()
-    return info_map, status_map, full_status_map
+
+    # the remaining data to send
+    if info_map:
+        socket_io.emit('info', info_map)
+    if status_map:
+        socket_io.emit('status', status_map)
+    for host_name, status in full_status_map.items():
+        socket_io.emit('full_status', {host_name: status}, room=host_name)
 
 
 def _get_remote_data(host, path, timeout):
