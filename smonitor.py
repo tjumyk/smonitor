@@ -149,7 +149,7 @@ def socket_update(host_id):
             break
     if host:
         result = _get_remote_data(host, '/api/self_update', (0.2, 60))
-        emit('update_result', result)
+        emit('update_result', {host_id: result})
 
 
 def _init():
@@ -211,7 +211,7 @@ def _status_worker():
             if status_map:
                 socket_io.emit('status', status_map)
             for host, status in full_status_map.items():
-                socket_io.emit('full_status', status, room=host)
+                socket_io.emit('full_status', {host: status}, room=host)
         else:
             if enabled_full_status:
                 full_status = _get_full_status()

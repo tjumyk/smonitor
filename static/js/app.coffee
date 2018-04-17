@@ -81,6 +81,33 @@ app.controller('RootController', ['$scope', '$http', '$timeout', ($scope, $http,
     status.memory.percent_level = percent_level(status.memory.percent)
     return status
 
+  process_full_status_message = (status)->
+    if status.error
+      return status
+    status.memory.available_h = human_size(status.memory.available)
+    status.memory.used_h = human_size(status.memory.used)
+    status.memory.buffers_h = human_size(status.memory.buffers)
+    status.memory.cached_h = human_size(status.memory.cached)
+    status.memory.free_h = human_size(status.memory.free)
+    if status.swap
+      status.swap.free_h = human_size(status.swap.free)
+      status.swap.percent_h = status.swap.percent + '%'
+    for mount, part of status.disk.partitions
+      part.free_h = human_size(part.free)
+      part.used_h = human_size(part.used)
+      part.percent_level = percent_level(part.percent)
+    for user in status.users
+      user.started_h = moment.unix(user.started).toNow()
+    return status
+
+  handle_update_result_message = (host, message)->
+    host.update_result = message
+    host.updating = false
+    if message.success
+      $timeout ->
+        host.update_result = undefined
+      , 5000
+
   $http.get('api/config').then (response)->
     $scope.config = config = response.data
 
@@ -102,6 +129,14 @@ app.controller('RootController', ['$scope', '$http', '$timeout', ($scope, $http,
         $timeout ->
           for name, status_message of message
             host_map[name].status = process_status_message(status_message)
+      socket.on 'full_status', (message)->
+        $timeout ->
+          for name, full_status_message of message
+            host_map[name].full_status = process_full_status_message(full_status_message)
+      socket.on 'update_result', (message)->
+        $timeout ->
+          for name, result_message of message
+            handle_update_result_message(host_map[name], result_message)
     else
       local_host =
         name: 'local'
@@ -116,6 +151,12 @@ app.controller('RootController', ['$scope', '$http', '$timeout', ($scope, $http,
       socket.on 'status', (message)->
         $timeout ->
           local_host.status = process_status_message(message)
+      socket.on 'full_status', (message)->
+        $timeout ->
+          local_host.full_status = process_full_status_message(message)
+      socket.on 'update_result', (message)->
+        $timeout ->
+          handle_update_result_message(local_host, message)
 ])
 
 app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http, $timeout)->
@@ -124,25 +165,6 @@ app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http,
 
 app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', ($scope, $http, $timeout, $routeParams)->
   host_id = $routeParams['hid']
-
-  process_full_status_message = (status)->
-    if status.error
-      return status
-    status.memory.available_h = human_size(status.memory.available)
-    status.memory.used_h = human_size(status.memory.used)
-    status.memory.buffers_h = human_size(status.memory.buffers)
-    status.memory.cached_h = human_size(status.memory.cached)
-    status.memory.free_h = human_size(status.memory.free)
-    if status.swap
-      status.swap.free_h = human_size(status.swap.free)
-      status.swap.percent_h = status.swap.percent + '%'
-    for mount, part of status.disk.partitions
-      part.free_h = human_size(part.free)
-      part.used_h = human_size(part.used)
-      part.percent_level = percent_level(part.percent)
-    for user in status.users
-      user.started_h = moment.unix(user.started).toNow()
-    return status
 
   $scope.$on '$routeChangeStart', ->
     if $scope.socket
@@ -164,17 +186,6 @@ app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams',
   $scope.$watch 'socket', (socket)->
     return if !socket
     socket.emit('enable_full_status', host_id)
-    socket.on 'full_status', (full_status)->
-      $timeout ->
-        $scope.host.full_status = process_full_status_message(full_status)
-    socket.on 'update_result', (result)->
-      $timeout ->
-        $scope.host.update_result = result
-        $scope.host.updating = false
-      if result.success
-        $timeout ->
-          $scope.host.update_result = undefined
-        , 5000
 
   $scope.update = ->
     if $scope.host

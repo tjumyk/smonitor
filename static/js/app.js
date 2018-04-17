@@ -47,7 +47,7 @@
 
   app.controller('RootController', [
     '$scope', '$http', '$timeout', function($scope, $http, $timeout) {
-      var process_info_message, process_status_message;
+      var handle_update_result_message, process_full_status_message, process_info_message, process_status_message;
       process_info_message = function(info) {
         var boot_time_moment, gpu, i, j, len, len1, part, ref, ref1;
         if (info.error) {
@@ -116,6 +116,43 @@
         status.memory.percent_level = percent_level(status.memory.percent);
         return status;
       };
+      process_full_status_message = function(status) {
+        var i, len, mount, part, ref, ref1, user;
+        if (status.error) {
+          return status;
+        }
+        status.memory.available_h = human_size(status.memory.available);
+        status.memory.used_h = human_size(status.memory.used);
+        status.memory.buffers_h = human_size(status.memory.buffers);
+        status.memory.cached_h = human_size(status.memory.cached);
+        status.memory.free_h = human_size(status.memory.free);
+        if (status.swap) {
+          status.swap.free_h = human_size(status.swap.free);
+          status.swap.percent_h = status.swap.percent + '%';
+        }
+        ref = status.disk.partitions;
+        for (mount in ref) {
+          part = ref[mount];
+          part.free_h = human_size(part.free);
+          part.used_h = human_size(part.used);
+          part.percent_level = percent_level(part.percent);
+        }
+        ref1 = status.users;
+        for (i = 0, len = ref1.length; i < len; i++) {
+          user = ref1[i];
+          user.started_h = moment.unix(user.started).toNow();
+        }
+        return status;
+      };
+      handle_update_result_message = function(host, message) {
+        host.update_result = message;
+        host.updating = false;
+        if (message.success) {
+          return $timeout(function() {
+            return host.update_result = void 0;
+          }, 5000);
+        }
+      };
       return $http.get('api/config').then(function(response) {
         var config, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, ref, ref1, socket;
         $scope.config = config = response.data;
@@ -145,13 +182,35 @@
               return results;
             });
           });
-          return socket.on('status', function(message) {
+          socket.on('status', function(message) {
             return $timeout(function() {
               var name, results, status_message;
               results = [];
               for (name in message) {
                 status_message = message[name];
                 results.push(host_map[name].status = process_status_message(status_message));
+              }
+              return results;
+            });
+          });
+          socket.on('full_status', function(message) {
+            return $timeout(function() {
+              var full_status_message, name, results;
+              results = [];
+              for (name in message) {
+                full_status_message = message[name];
+                results.push(host_map[name].full_status = process_full_status_message(full_status_message));
+              }
+              return results;
+            });
+          });
+          return socket.on('update_result', function(message) {
+            return $timeout(function() {
+              var name, result_message, results;
+              results = [];
+              for (name in message) {
+                result_message = message[name];
+                results.push(handle_update_result_message(host_map[name], result_message));
               }
               return results;
             });
@@ -171,9 +230,19 @@
               return local_host.info = process_info_message(message);
             });
           });
-          return socket.on('status', function(message) {
+          socket.on('status', function(message) {
             return $timeout(function() {
               return local_host.status = process_status_message(message);
+            });
+          });
+          socket.on('full_status', function(message) {
+            return $timeout(function() {
+              return local_host.full_status = process_full_status_message(message);
+            });
+          });
+          return socket.on('update_result', function(message) {
+            return $timeout(function() {
+              return handle_update_result_message(local_host, message);
             });
           });
         }
@@ -185,36 +254,8 @@
 
   app.controller('HostController', [
     '$scope', '$http', '$timeout', '$routeParams', function($scope, $http, $timeout, $routeParams) {
-      var host_id, process_full_status_message;
+      var host_id;
       host_id = $routeParams['hid'];
-      process_full_status_message = function(status) {
-        var i, len, mount, part, ref, ref1, user;
-        if (status.error) {
-          return status;
-        }
-        status.memory.available_h = human_size(status.memory.available);
-        status.memory.used_h = human_size(status.memory.used);
-        status.memory.buffers_h = human_size(status.memory.buffers);
-        status.memory.cached_h = human_size(status.memory.cached);
-        status.memory.free_h = human_size(status.memory.free);
-        if (status.swap) {
-          status.swap.free_h = human_size(status.swap.free);
-          status.swap.percent_h = status.swap.percent + '%';
-        }
-        ref = status.disk.partitions;
-        for (mount in ref) {
-          part = ref[mount];
-          part.free_h = human_size(part.free);
-          part.used_h = human_size(part.used);
-          part.percent_level = percent_level(part.percent);
-        }
-        ref1 = status.users;
-        for (i = 0, len = ref1.length; i < len; i++) {
-          user = ref1[i];
-          user.started_h = moment.unix(user.started).toNow();
-        }
-        return status;
-      };
       $scope.$on('$routeChangeStart', function() {
         if ($scope.socket) {
           $scope.socket.emit('disable_full_status', host_id);
@@ -253,23 +294,7 @@
         if (!socket) {
           return;
         }
-        socket.emit('enable_full_status', host_id);
-        socket.on('full_status', function(full_status) {
-          return $timeout(function() {
-            return $scope.host.full_status = process_full_status_message(full_status);
-          });
-        });
-        return socket.on('update_result', function(result) {
-          $timeout(function() {
-            $scope.host.update_result = result;
-            return $scope.host.updating = false;
-          });
-          if (result.success) {
-            return $timeout(function() {
-              return $scope.host.update_result = void 0;
-            }, 5000);
-          }
-        });
+        return socket.emit('enable_full_status', host_id);
       });
       return $scope.update = function() {
         if ($scope.host) {
