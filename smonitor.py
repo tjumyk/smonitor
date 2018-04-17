@@ -77,19 +77,21 @@ def self_update():
     try:
         subprocess.run(['git', 'fetch'], check=True)
         labels = subprocess.check_output(['git', 'describe', '--always', 'HEAD', 'FETCH_HEAD']).decode().strip().split()
-        from_label = labels[0]
-        to_label = labels[1]
-        if from_label == to_label:
+        repo_label = labels[0]
+        latest_label = labels[1]
+        runtime_label = static_info['public']['package']['label']
+        if runtime_label == latest_label:  # implies repo_label == latest_label
             print('[Self Update] Already up-to-date')
-            return jsonify(success=True, already_latest=True, label=to_label)
-        subprocess.run(['git', 'pull'], check=True)
+            return jsonify(success=True, already_latest=True, label=latest_label)
+        if repo_label != latest_label:
+            subprocess.run(['git', 'pull'], check=True)
         socket_io.start_background_task(target=_restart)
     except Exception as e:
         error = str(e)
         print('[Self Update] Failed: %s' % error)
         return jsonify(error=error)
     print('[Self Update] Succeeded')
-    return jsonify(success=True, from_label=from_label, to_label=to_label)
+    return jsonify(success=True, repo_label=repo_label, runtime_label=runtime_label, latest_label=latest_label)
 
 
 @socket_io.on('connect')
@@ -166,7 +168,7 @@ def socket_update(host_id):
                     if info is None:  # not yet ready
                         continue
                     label = info['package']['label']
-                    if label != result.get('to_label'):
+                    if label != result.get('latest_label'):
                         del host_info[host_id]
                     else:
                         updated = True
