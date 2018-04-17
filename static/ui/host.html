@@ -299,18 +299,20 @@
         <i class="users icon"></i>
         <div class="content">Active Users</div>
     </div>
-    <table class="ui celled unstackable table">
-        <thead><tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th><th>PID</th></tr></thead>
-        <tbody>
-        <tr ng-repeat="user in host.full_status.users">
-            <td>{{user.name}}</td>
-            <td>{{user.terminal}}</td>
-            <td>{{user.host}}</td>
-            <td>{{user.started_h}}</td>
-            <td>{{user.pid}}</td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="ui celled unstackable scrolling table">
+            <thead><tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th><th>PID</th></tr></thead>
+            <tbody>
+            <tr ng-repeat="user in host.full_status.users">
+                <td>{{user.name}}</td>
+                <td>{{user.terminal}}</td>
+                <td>{{user.host}}</td>
+                <td>{{user.started_h}}</td>
+                <td>{{user.pid}}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
     <div class="footer">
         Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a>
     </div>
