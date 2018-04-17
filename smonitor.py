@@ -75,6 +75,13 @@ def get_full_status():
 def self_update():
     print('[Self Update] Started')
     try:
+        subprocess.run(['git', 'fetch'], check=True)
+        labels = subprocess.check_output(['git', 'describe', '--always', 'FETCH_HEAD', 'HEAD']).decode().strip().split()
+        from_label = labels[0]
+        to_label = labels[1]
+        if from_label == to_label:
+            print('[Self Update] Already up-to-date')
+            return jsonify(success=True, already_latest=True, label=to_label)
         subprocess.run(['git', 'pull'], check=True)
         socket_io.start_background_task(target=_restart)
     except Exception as e:
@@ -82,7 +89,7 @@ def self_update():
         print('[Self Update] Failed: %s' % error)
         return jsonify(error=error)
     print('[Self Update] Succeeded')
-    return jsonify(success=True)
+    return jsonify(success=True, from_label=from_label, to_label=to_label)
 
 
 @socket_io.on('connect')
@@ -146,26 +153,28 @@ def socket_update(host_id):
         if host:
             break
     if host:
-        old_label = host_info[host_id]['package']['label']
         result = _get_remote_data(host, '/api/self_update', (0.2, 30))
         if result.get('success'):
-            updated = False
-            del host_info[host_id]  # force update host info
-            for _ in range(5):
-                time.sleep(config['monitor']['interval'])
-                new_info = host_info.get(host_id)
-                if new_info is None:  # not yet ready
-                    continue
-                new_label = new_info['package']['label']
-                if new_label == old_label:  # not yet restarted (rare)
-                    del host_info[host_id]
-                else:
-                    updated = True
-                    break
-            if updated:
-                emit('update_result', {host_id: {'success': True}})
+            if result.get('already_latest'):
+                emit('update_result', {host_id: result})
             else:
-                emit('update_result', {host_id: {'error': 'Failed to restart daemon'}})
+                updated = False
+                del host_info[host_id]  # force update
+                for _ in range(5):
+                    time.sleep(config['monitor']['interval'])
+                    info = host_info.get(host_id)
+                    if info is None:  # not yet ready
+                        continue
+                    label = info['package']['label']
+                    if label != result.get('to_label'):
+                        del host_info[host_id]
+                    else:
+                        updated = True
+                        break
+                if updated:
+                    emit('update_result', {host_id: result})
+                else:
+                    emit('update_result', {host_id: {'error': 'Failed to restart daemon'}})
         else:
             emit('update_result', {host_id: result})
 
@@ -197,6 +206,7 @@ def _clean_up():  # TODO when to call this?
 
 def _restart():
     time.sleep(1)
+    print('[Restart] Calling manager to restart')
     requests.get("http://%s:%d/restart" % (config['manager']['host'], config['manager']['port']))
 
 

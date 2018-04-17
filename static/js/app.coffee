@@ -4,10 +4,10 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
   $locationProvider.html5Mode(false)
   $routeProvider
     .when '/',
-      templateUrl: 'static/ui/home.html'
+      templateUrl: 'static/ui/home.html?t=1804181'
       controller: 'HomeController'
     .when '/hosts/:hid',
-      templateUrl: 'static/ui/host.html'
+      templateUrl: 'static/ui/host.html?t=1804181'
       controller: 'HostController'
     .otherwise
       templateUrl: 'static/ui/404.html'
@@ -160,7 +160,19 @@ app.controller('RootController', ['$scope', '$http', '$timeout', ($scope, $http,
 ])
 
 app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http, $timeout)->
-
+  $scope.update = ->
+    $scope.updating = true
+    $http.get('api/self_update').then (response)->
+      $scope.updating = false
+      if response.data.already_latest
+        alert('Server already up-to-date.')
+      else
+        alert('Server updated. Click OK to reload this page.')
+        window.location.reload()
+    , (response)->
+      console.error(response)
+      if response.data.error
+        alert(response.data.error)
 ]
 
 app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', ($scope, $http, $timeout, $routeParams)->

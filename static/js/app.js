@@ -8,10 +8,10 @@
     '$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
       $locationProvider.html5Mode(false);
       return $routeProvider.when('/', {
-        templateUrl: 'static/ui/home.html',
+        templateUrl: 'static/ui/home.html?t=1804181',
         controller: 'HomeController'
       }).when('/hosts/:hid', {
-        templateUrl: 'static/ui/host.html',
+        templateUrl: 'static/ui/host.html?t=1804181',
         controller: 'HostController'
       }).otherwise({
         templateUrl: 'static/ui/404.html'
@@ -250,7 +250,27 @@
     }
   ]);
 
-  app.controller('HomeController', ['$scope', '$http', '$timeout', function($scope, $http, $timeout) {}]);
+  app.controller('HomeController', [
+    '$scope', '$http', '$timeout', function($scope, $http, $timeout) {
+      return $scope.update = function() {
+        $scope.updating = true;
+        return $http.get('api/self_update').then(function(response) {
+          $scope.updating = false;
+          if (response.data.already_latest) {
+            return alert('Server already up-to-date.');
+          } else {
+            alert('Server updated. Click OK to reload this page.');
+            return window.location.reload();
+          }
+        }, function(response) {
+          console.error(response);
+          if (response.data.error) {
+            return alert(response.data.error);
+          }
+        });
+      };
+    }
+  ]);
 
   app.controller('HostController', [
     '$scope', '$http', '$timeout', '$routeParams', function($scope, $http, $timeout, $routeParams) {

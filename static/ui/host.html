@@ -33,7 +33,8 @@
         </div>
         <div ng-show="host.update_result.success" class="header">
             <i class="check circle icon"></i>
-            <span>Daemon Updated Successfully</span>
+            <span ng-hide="host.update_result.already_latest">Daemon Updated Successfully</span>
+            <span ng-show="host.update_result.already_latest">Daemon Already Up-to-date</span>
         </div>
         <p ng-show="host.update_result.error">{{host.update_result.error}}</p>
     </div>

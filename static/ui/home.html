@@ -96,7 +96,7 @@
         </div>
     </div>
     <div class="footer">
-        <span>Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a></span>
-        <span>Server Version: {{config.package.label}}</span>
+        <p>Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a></p>
+        <p ng-show="config.package">Server Version: {{config.package.label}} <button class="ui mini button" ng-click="update()" ng-class="{'loading': updating}">Check Update</button></p>
     </div>
 </div>
