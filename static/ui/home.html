@@ -1,0 +1,102 @@
+<div class="ui container">
+    <h1 class="ui center aligned header">
+        <img class="ui image" src="static/image/logo.svg">
+        <div class="content">
+            {{config.site_name}}
+            <div class="sub header">System Monitor <span ng-show="config && config.mode!='app'">(Mode: {{config.mode}})</span></div>
+        </div>
+    </h1>
+    <div ng-repeat="host_group in config.host_groups" class="host-group">
+        <h2 class="ui header">
+            <i class="server icon"></i>
+            <div class="content">{{host_group.name}}</div>
+        </h2>
+        <div class="ui segments">
+            <div class="ui host segment" ng-repeat="host in host_group.hosts" ng-class="{'red': host.status.error || host.info.error }">
+                <div class="metric-container">
+                    <h3 class="ui host header">
+                        <i class="desktop icon"></i>
+                        <div class="content">
+                            <a href="#!/hosts/{{host.name}}">{{host.name}}</a>
+                            <div class="sub header">({{host.address}})</div>
+                        </div>
+                    </h3>
+                    <div class="bar"></div>
+                    <div ng-hide="host.status.error || host.info.error" class="metric-wrapper">
+                        <div class="metric">
+                            <div class="header">CPU Utilization</div>
+                            <div class="content" ng-class="host.status.cpu.percent_level">{{host.status.cpu.percent_h}}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="header">CPU Threads</div>
+                            <div class="content">{{host.info.cpu.count}}</div>
+                        </div>
+                        <div class="bar"></div>
+                        <div class="metric">
+                            <div class="header">Memory Utilization</div>
+                            <div class="content" ng-class="host.status.memory.percent_level">{{host.status.memory.percent_h}}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="header">Memory Size</div>
+                            <div class="content">{{host.info.memory.total_h}}</div>
+                        </div>
+                        <div class="bar"></div>
+                        <div class="metric">
+                            <div class="header">System Partition Utilization</div>
+                            <div class="content" ng-class="host.status.disk.system.percent_level">{{host.status.disk.system.percent_h}}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="header">System Partition Size</div>
+                            <div class="content">{{host.info.disk.system.total_h}}</div>
+                        </div>
+                        <div class="bar"></div>
+                        <div class="metric">
+                            <div class="header">Other Partitions Utilization</div>
+                            <div class="content" ng-class="host.status.disk.others.percent_level">{{host.status.disk.others.percent_h}}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="header">Other Partitions Total Size</div>
+                            <div class="content">{{host.info.disk.others.total_h}}</div>
+                        </div>
+                        <div class="bar"></div>
+                        <div class="metric wide">
+                            <div class="header">Up Time</div>
+                            <div class="content">{{host.info.up_time}}</div>
+                        </div>
+                    </div>
+                    <div class="host-error" ng-show="host.status.error || host.info.error">
+                        <i class="times circle red icon"></i>
+                        <span>{{host.status.error.message || host.info.error.message}}</span>
+                    </div>
+                </div>
+                <div ng-show="host.info.gpu && host.status.gpu">
+                    <div class="ui slim divider"></div>
+                    <div class="metric-container">
+                        <div ng-repeat="gpu in host.info.gpu.devices" class="metric-group" ng-class="{'success': host.status.gpu.devices[gpu.index].processes>0}">
+                            <div class="header">
+                                GPU {{gpu.index}}
+                                <div class="sub">{{gpu.name}}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">GPU Utilization</div>
+                                <div class="content">{{host.status.gpu.devices[gpu.index].utilization.gpu}}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">Memory Utilization</div>
+                                <div class="content">{{host.status.gpu.devices[gpu.index].memory.percent}}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">Memory Size</div>
+                                <div class="content">{{gpu.memory.total_h}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <span>Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a></span>
+        <span>Server Version: {{config.package.label}}</span>
+    </div>
+</div>

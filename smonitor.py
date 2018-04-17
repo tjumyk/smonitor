@@ -1,12 +1,16 @@
 import json
+import platform
+import subprocess
 import sys
 import threading
 import time
 
+import cpuinfo
+import distro
 import psutil
 import requests
 from flask import Flask, jsonify, request
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from gevent import monkey
 from requests.adapters import HTTPAdapter
 
@@ -19,7 +23,11 @@ with open('config.json') as f_config:
     config = json.load(f_config)
 app.config['SECRET_KEY'] = config['server']['secret']
 socket_io = SocketIO(app, async_mode='gevent')
-room_status_collection = 'status_collection'
+
+session = requests.session()
+adapter = HTTPAdapter(pool_maxsize=100)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
 
 clients = 0
 clients_lock = threading.Lock()
@@ -32,6 +40,7 @@ static_info = {
     'private': {}
 }
 host_info = {}
+enabled_full_status = False
 
 
 @app.route('/')
@@ -43,6 +52,7 @@ def index():
 def get_config():
     _config = dict(config['monitor'])
     _config['port'] = config['server']['port']
+    _config['package'] = _get_package_info()
     return jsonify(_config)
 
 
@@ -54,6 +64,27 @@ def get_static_info():
 @app.route('/api/status')
 def get_status():
     return jsonify(_get_status())
+
+
+@app.route('/api/full_status')
+def get_full_status():
+    return jsonify(_get_full_status())
+
+
+@app.route('/api/self_update')
+def self_update():
+    print('[Self Update] Started')
+    try:
+        subprocess.run(['git', 'pull'], check=True)
+        response = requests.get("http://%s:%d/restart" % (config['manager']['host'], config['manager']['port']))
+        if response.status_code != 200:
+            raise RuntimeError("[Manager Error] %s" % response.json()['error'])
+    except Exception as e:
+        error = str(e)
+        print('[Self Update] Failed: %s' % error)
+        return jsonify(error=error)
+    print('[Self Update] Succeeded')
+    return jsonify(success=True)
 
 
 @socket_io.on('connect')
@@ -84,8 +115,47 @@ def socket_ping():
     emit('pong')
 
 
+@socket_io.on('enable_full_status')
+def socket_enable_full_status(host):
+    global enabled_full_status
+    if config['monitor']['mode'] == 'app':
+        join_room(host)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
+        print('[Subscribe Full Status] ID=%s host: %s, total subscribers: %d' % (request.sid, host, subscribers))
+    else:
+        enabled_full_status = True
+
+
+@socket_io.on('disable_full_status')
+def socket_disable_full_status(host):
+    global enabled_full_status
+    if config['monitor']['mode'] == 'app':
+        leave_room(host)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
+        print('[Unsubscribe Full Status] ID=%s host: %s, total subscribers: %d' % (request.sid, host, subscribers))
+    else:
+        enabled_full_status = False
+
+
+@socket_io.on('update')
+def socket_update(host_id):
+    host = None
+    for host_group in config['monitor']['host_groups']:
+        for _host in host_group['hosts']:
+            if _host['name'] == host_id:
+                host = _host
+                break
+        if host:
+            break
+    if host:
+        result = _get_remote_data(host, '/api/self_update', (0.2, 60))
+        emit('update_result', result)
+
+
 def _init():
     global nvml_inited
+    _update_package_info()
+    _update_platform_info()
     _update_psutil_static_info()
     try:
         pynvml.nvmlInit()
@@ -114,6 +184,15 @@ def _get_status():
     return status
 
 
+def _get_full_status():
+    status = _get_full_status_psutil()
+    if nvml_inited:
+        full_status_nvml = _get_full_status_nvml()
+        status['basic']['gpu'] = full_status_nvml['basic']
+        status['full']['gpu'] = full_status_nvml['full']
+    return status
+
+
 def _status_worker():
     global worker_thread
     print('[Status Worker] Worker Started')
@@ -122,18 +201,24 @@ def _status_worker():
     request_timeout = (0.2, interval)
     batch_timeout = min(0.2, interval)
 
-    session = _build_session()
     host_retry = {}
     while clients:
         start_time = time.time()
         if app_mode:
-            info_map, status_map = _collect_remote_status(session, host_retry, request_timeout, batch_timeout)
+            info_map, status_map, full_status_map = _collect_remote_status(host_retry, request_timeout, batch_timeout)
             if info_map:
                 socket_io.emit('info', info_map)
             if status_map:
                 socket_io.emit('status', status_map)
+            for host, status in full_status_map.items():
+                socket_io.emit('full_status', status, room=host)
         else:
-            socket_io.emit('status', _get_status())
+            if enabled_full_status:
+                full_status = _get_full_status()
+                socket_io.emit('status', full_status['basic'])
+                socket_io.emit('full_status', full_status['full'])
+            else:
+                socket_io.emit('status', _get_status())
         elapsed_time = time.time() - start_time
         if elapsed_time < interval:
             socket_io.sleep(interval - elapsed_time)
@@ -144,21 +229,36 @@ def _status_worker():
     print('[Status Worker] Worker Terminated')
 
 
-def _collect_remote_status(session, host_retry, request_timeout, batch_timeout):
+def _collect_remote_status(host_retry, request_timeout, batch_timeout):
     status_map = {}
+    full_status_map = {}
     info_map = {}
     batch_start_time = time.time()
+    rooms = socket_io.server.manager.rooms.get('/')
+
     for host_group in config['monitor']['host_groups']:
         for host in host_group['hosts']:
             name = host['name']
             retry = host_retry.get(name)
             if retry is None or retry['wait_remain'] <= 0:
-                status = _get_remote_data(host, '/api/status', request_timeout, session)
-                status_map[name] = status
+                fetch_full_status = False
+                if rooms is not None and rooms.get(name):
+                    fetch_full_status = True
+                if fetch_full_status:
+                    status = _get_remote_data(host, '/api/full_status', request_timeout)
+                    if 'error' in status:
+                        status_map[name] = status
+                        full_status_map[name] = status
+                    else:
+                        status_map[name] = status['basic']
+                        full_status_map[name] = status['full']
+                else:
+                    status = _get_remote_data(host, '/api/status', request_timeout)
+                    status_map[name] = status
                 info = {}
                 existing_info = host_info.get(name)
                 if 'error' in status or existing_info is None or 'error' in existing_info:
-                    info = _get_remote_data(host, '/api/info', request_timeout, session)
+                    info = _get_remote_data(host, '/api/info', request_timeout)
                     info_map[name] = info
                     host_info[name] = info
                 if 'error' in status or 'error' in info:
@@ -182,19 +282,12 @@ def _collect_remote_status(session, host_retry, request_timeout, batch_timeout):
                 socket_io.emit('status', status_map)
                 info_map.clear()
                 status_map.clear()
+                full_status_map.clear()
                 batch_start_time = time.time()
-    return info_map, status_map
+    return info_map, status_map, full_status_map
 
 
-def _build_session():
-    session = requests.session()
-    adapter = HTTPAdapter(pool_maxsize=100)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
-    return session
-
-
-def _get_remote_data(host, path, timeout, session):
+def _get_remote_data(host, path, timeout):
     address = host['address']
     port_num = host.get('port') or config['server']['port']
     response = None
@@ -232,13 +325,45 @@ def _get_remote_data(host, path, timeout, session):
     return data
 
 
+def _get_package_info():
+    info = None
+    try:
+        git_label = subprocess.check_output(["git", "describe", "--always"]).decode().strip()
+        info = {
+            "label": git_label
+        }
+    except Exception as e:
+        print('[Warning] Failed to get the package information: %s' % str(e))
+    return info
+
+
+def _update_package_info():
+    static_info['public']['package'] = _get_package_info()
+
+
+def _update_platform_info():
+    system = platform.system()
+    info = {
+        'system': system
+    }
+    if system == 'Linux':
+        name, version, codename = distro.linux_distribution()
+        info['distribution'] = {
+            'name': name,
+            'version': version,
+            'codename': codename
+        }
+    static_info['public']['platform'] = info
+
+
 def _update_psutil_static_info():
     vm = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    partitions = []
     sys_partition = None
     boot_partition = None
     other_partitions = None
     other_partitions_total = 0
-    other_partitions_used = 0
     for part in psutil.disk_partitions():
         usage = psutil.disk_usage(part.mountpoint)
         if part.mountpoint == '/':
@@ -247,22 +372,35 @@ def _update_psutil_static_info():
             boot_partition = {'total': usage.total}
         else:
             other_partitions_total += usage.total
-            other_partitions_used += usage.used
+        partitions.append({
+            'device': part.device,
+            'mountpoint': part.mountpoint,
+            'fstype': part.fstype,
+            # 'opts': part.opts,
+            'total': usage.total
+        })
     if other_partitions_total > 0:
         other_partitions = {
             'total': other_partitions_total
         }
+    cpu_info = cpuinfo.get_cpu_info()
     static_info['public'].update({
         'cpu': {
-            'count': psutil.cpu_count()
+            'count': psutil.cpu_count(),
+            'cores': psutil.cpu_count(False),
+            'brand': cpu_info['brand']
         },
         'memory': {
             'total': vm.total
         },
+        'swap': {
+            'total': swap.total
+        },
         'disk': {
             'system': sys_partition,
             'boot': boot_partition,
-            'others': other_partitions
+            'others': other_partitions,
+            'partitions': partitions
         },
         'boot_time': psutil.boot_time()
     })
@@ -303,34 +441,113 @@ def _update_nvml_static_info():
 def _get_status_psutil():
     vm = psutil.virtual_memory()
     sys_partition = None
-    boot_partition = None
     other_partitions = None
     other_partitions_total = 0
-    other_partitions_used = 0
+    other_partitions_free = 0
     for part in psutil.disk_partitions():
         usage = psutil.disk_usage(part.mountpoint)
         if part.mountpoint == '/':
-            sys_partition = {'percent': usage.percent}
+            sys_partition = {
+                'percent': usage.percent
+            }
         elif part.mountpoint == '/boot/efi':
-            boot_partition = {'percent': usage.percent}
+            continue
         else:
             other_partitions_total += usage.total
-            other_partitions_used += usage.used
+            other_partitions_free += usage.free
     if other_partitions_total > 0:
         other_partitions = {
-            'percent': round(1000.0 * other_partitions_used / other_partitions_total) / 10.0
+            'percent': round(1000 * (1 - other_partitions_free / other_partitions_total)) / 10
         }
     status = {
         'cpu': {
             'percent': psutil.cpu_percent()
         },
         'memory': {
-            'percent': vm.percent
+            'percent': vm.percent,
         },
         'disk': {
             'system': sys_partition,
-            'boot': boot_partition,
             'others': other_partitions
+        }
+    }
+    return status
+
+
+def _get_full_status_psutil():
+    vm = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    sys_partition = None
+    boot_partition = None
+    other_partitions = None
+    other_partitions_total = 0
+    other_partitions_free = 0
+    partitions = {}
+    for part in psutil.disk_partitions():
+        usage = psutil.disk_usage(part.mountpoint)
+        if part.mountpoint == '/':
+            sys_partition = {
+                'percent': usage.percent
+            }
+        elif part.mountpoint == '/boot/efi':
+            boot_partition = {
+                'percent': usage.percent
+            }
+        else:
+            other_partitions_total += usage.total
+            other_partitions_free += usage.free
+        partitions[part.mountpoint] = {
+            'free': usage.free,
+            'used': usage.used,
+            'percent': usage.percent
+        }
+    if other_partitions_total > 0:
+        other_partitions = {
+            'percent': round(1000 * (1 - other_partitions_free / other_partitions_total)) / 10
+        }
+    status = {
+        'basic': {
+            'cpu': {
+                'percent': psutil.cpu_percent()
+            },
+            'memory': {
+                'percent': vm.percent,
+            },
+            'disk': {
+                'system': sys_partition,
+                'others': other_partitions
+            }
+        },
+        'full': {
+            'cpu': {
+                'percents': psutil.cpu_percent(percpu=True)
+            },
+            'memory': {
+                'available': vm.available,
+                'used': vm.used,
+                'free': vm.free,
+                'buffers': vm.buffers,
+                'cached': vm.cached,
+                'used_percent': round(1000 * vm.used / vm.total) / 10,
+                'free_percent': round(1000 * vm.free / vm.total) / 10,
+                'buffers_percent': round(1000 * vm.buffers / vm.total) / 10,
+                'cached_percent': round(1000 * vm.cached / vm.total) / 10
+            },
+            'swap': {
+                'free': swap.free,
+                'percent': swap.percent
+            },
+            'disk': {
+                'boot': boot_partition,
+                'partitions': partitions
+            },
+            'users': [{
+                'name': u.name,
+                'terminal': u.terminal,
+                'host': u.host,
+                'started': u.started,
+                'pid': u.pid
+            } for u in psutil.users()]
         }
     }
     return status
@@ -342,17 +559,43 @@ def _get_status_nvml():
         util = pynvml.nvmlDeviceGetUtilizationRates(handle)
         mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         process_info = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
-        _status = {
+        devices_status.append({
             'utilization': {'gpu': util.gpu, 'memory': util.memory},
             'memory': {
                 'percent': int(1000.0 * mem_info.used / mem_info.total) / 10.0
             },
             'processes': len(process_info)
-        }
-        # info['processes'] = [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
-        devices_status.append(_status)
+        })
     status = {
         'devices': devices_status
+    }
+    return status
+
+
+def _get_full_status_nvml():
+    devices_status = []
+    devices_full_status = []
+    for handle in static_info['private']['gpu']['handles']:
+        util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        process_info = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
+        devices_status.append({
+            'utilization': {'gpu': util.gpu, 'memory': util.memory},
+            'memory': {
+                'percent': int(1000.0 * mem_info.used / mem_info.total) / 10.0
+            },
+            'processes': len(process_info)
+        })
+        devices_full_status.append({
+            'process_list': [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
+        })
+    status = {
+        'basic': {
+            'devices': devices_status
+        },
+        'full': {
+            'devices': devices_full_status
+        }
     }
     return status
 

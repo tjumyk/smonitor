@@ -3,3 +3,5 @@ flask-socketio
 psutil
 gevent-websocket
 requests
+distro
+py-cpuinfo

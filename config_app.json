@@ -1,10 +1,15 @@
 {
-  "server":{
+  "server": {
     "host": "0.0.0.0",
     "port": 8999,
     "secret": "b3YM5tT3yPutFgch79zx9Pup"
   },
-  "monitor":{
+  "manager": {
+    "host": "localhost",
+    "port": 6999,
+    "mode": "supervisor"
+  },
+  "monitor": {
     "mode": "app",
     "site_name": "UNSW KG Servers",
     "interval": 3,
@@ -14,7 +19,7 @@
         "hosts": [
           {
             "name": "kg",
-            "address": "kg.cse.unsw.edu.au"
+            "address": "localhost"
           }
         ]
       },

@@ -1,11 +1,25 @@
 @color-success: #21ba45 !important;
 @color-warning: #fbbd08 !important;
 @color-danger: #db2828 !important;
+@progress-color: @color-success;
 
 @metric-margin: 0.25rem;
 
 body {
   padding-top: 2rem;
+}
+
+html, body, .vertical-center {
+  width: 100%;
+  height: 100%;
+}
+
+.vertical-center {
+  display: table;
+  & > .inner {
+    display: table-cell;
+    vertical-align: middle;
+  }
 }
 
 .metric {
@@ -15,7 +29,7 @@ body {
   margin: @metric-margin;
   text-align: right;
   max-width: 90px;
-  &.wide{
+  &.wide {
     max-width: 200px;
   }
   .header {
@@ -77,10 +91,11 @@ body {
   }
 }
 
-.metric-container{
+.metric-container {
   margin: -@metric-margin;
 }
-.metric-wrapper{
+
+.metric-wrapper {
   display: inline-block;
 }
 
@@ -110,13 +125,97 @@ body {
   }
 }
 
-.ui.slim.divider{
+.ui.slim.divider {
   margin: 0.4rem 0;
 }
-.host-error{
+
+.host-error {
   display: inline-block;
   font-size: 1.4em;
   color: @color-danger;
   vertical-align: top;
   margin: 0.9em @metric-margin;
+}
+
+.percent-bar {
+  display: flex;
+  .bar {
+    flex: 1;
+  }
+  .label {
+    margin-right: .4em;
+  }
+  .number {
+    width: 3em;
+    margin-left: .4em;
+    text-align: right;
+  }
+}
+
+.percent-bar > .bar, .multi-percent-bar {
+  border: 1px solid grey;
+  position: relative;
+  height: 1em;
+  margin-top: 0.2em;
+  .inner {
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border: 1px solid transparent;
+    background: @progress-color;
+    width: 0;
+    transition: width 0.5s ease-out, left 0.5s ease-out;
+  }
+}
+
+.multi-percent-bar .inner {
+  &.mem-buffers {
+    background-color: lighten(@progress-color, 20%);
+  }
+  &.mem-cached {
+    background-color: lighten(@progress-color, 40%);
+  }
+}
+
+.legend{
+  text-align: center;
+  margin-top: 0.5em;
+  .header{
+    font-weight: bold;
+  }
+  .items{
+    margin: 0 -0.5em;
+    .item{
+      display: inline-block;
+      margin: 0 0.5em;
+      .color-block{
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        border: 1px solid grey;
+      }
+    }
+  }
+}
+
+.legend .color-block{
+  &.mem-used, &.disk-used{
+    background-color: @progress-color;
+  }
+  &.mem-buffers {
+    background-color: lighten(@progress-color, 20%);
+  }
+  &.mem-cached {
+    background-color: lighten(@progress-color, 40%);
+  }
+}
+
+.footer{
+  text-align: center;
+  padding: 1em;
+  span{
+    margin: 0 1em;
+  }
 }

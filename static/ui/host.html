@@ -1,0 +1,309 @@
+<div class="ui container">
+    <h1 class="ui center aligned header">
+        <img class="ui image" src="static/image/logo.svg">
+        <div class="content">
+            {{config.site_name}}
+            <div class="sub header">System Monitor <span ng-show="config && config.mode!='app'">(Mode: {{config.mode}})</span></div>
+        </div>
+    </h1>
+    <div class="ui breadcrumb">
+        <a class="section" href="#!/">All Servers</a>
+        <i class="right angle icon divider"></i>
+        <a class="section">{{host_group.name}}</a>
+        <i class="right angle icon divider"></i>
+        <div class="active section">{{host.name}}</div>
+    </div>
+    <div ng-show="host.info.error || host.status.error || host.full_status.error" class="ui negative message">
+        <div class="header">
+            <i class="times circle icon"></i>
+            <span>{{host.info.error.message || host.status.error.message || host.full_status.error.message}}</span>
+        </div>
+    </div>
+    <div ng-show="host.update_result" class="ui message" ng-class="{'negative': host.update_result.error, 'positive': host.update_result.success}">
+        <div ng-show="host.update_result.error" class="header">
+            <i class="times circle icon"></i>
+            <span>Failed to update daemon</span>
+        </div>
+        <div ng-show="host.update_result.success" class="header">
+            <i class="check circle icon"></i>
+            <span>Daemon Updated Successfully</span>
+        </div>
+        <p ng-show="host.update_result.error">{{host.update_result.error}}</p>
+    </div>
+    <div class="ui header">
+        <i class="desktop icon"></i>
+        <div class="content">Host Information</div>
+    </div>
+    <div class="ui segment">
+        <div class="ui horizontal list">
+            <div class="item">
+                <i class="tag icon"></i>
+                <div class="content">
+                    <div class="header">Name</div>
+                    {{host.name}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="sitemap icon"></i>
+                <div class="content">
+                    <div class="header">Group</div>
+                    {{host_group.name}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="globe icon"></i>
+                <div class="content">
+                    <div class="header">Address</div>
+                    {{host.address}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="icon" ng-class="host.info.platform.system.toLowerCase()"></i>
+                <div class="content">
+                    <div class="header">Operating System</div>
+                    <span ng-show="host.info.platform.distribution">
+                        {{host.info.platform.distribution.name}} {{host.info.platform.distribution.version}}
+                    </span>
+                </div>
+            </div>
+            <div class="item">
+                <i class="power off icon"></i>
+                <div class="content">
+                    <div class="header">Boot Time</div>
+                    {{host.info.boot_time_h}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="stopwatch icon"></i>
+                <div class="content">
+                    <div class="header">Up Time</div>
+                    {{host.info.up_time}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="code branch icon"></i>
+                <div class="content">
+                    <div class="header">Monitor Daemon Version</div>
+                    {{host.info.package.label}}
+                    <button ng-show="host.info.package && config.package.label!=host.info.package.label"
+                            class="mini ui button" ng-click="update()" ng-class="{'loading': host.updating}">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ui header">
+        <i class="heartbeat icon"></i>
+        <div class="content">CPU</div>
+    </div>
+    <div class="ui segment">
+        <div class="ui horizontal list">
+            <div class="item">
+                <i class="ticket icon"></i>
+                <div class="content">
+                    <div class="header">Brand</div>
+                    {{host.info.cpu.brand}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="th large icon"></i>
+                <div class="content">
+                    <div class="header">Amount</div>
+                    {{host.info.cpu.cores}} Cores ({{host.info.cpu.count}} Threads)
+                </div>
+            </div>
+            <div class="item">
+                <i class="percent icon"></i>
+                <div class="content">
+                    <div class="header">Overall Utilization</div>
+                    {{host.status.cpu.percent_h}}
+                </div>
+            </div>
+        </div>
+        <div ng-show="host.full_status.cpu.percents">
+            <div class="ui divider"></div>
+            <div class="ui doubling four column grid">
+                <div ng-repeat="p in host.full_status.cpu.percents track by $index" class="column">
+                    <div class="percent-bar">
+                        <div class="label">CPU {{$index}}</div>
+                        <div class="bar">
+                            <div class="inner" ng-style="{'width': p+'%'}"></div>
+                        </div>
+                        <div class="number">{{p}}%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ui header">
+        <i class="microchip icon"></i>
+        <div class="content">Memory</div>
+    </div>
+    <div class="ui segment">
+        <div class="ui horizontal list">
+            <div class="item">
+                <i class="circle icon"></i>
+                <div class="content">
+                    <div class="header">Memory Size</div>
+                    {{host.info.memory.total_h}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="circle outline icon"></i>
+                <div class="content">
+                    <div class="header">Memory Available</div>
+                    {{host.full_status.memory.available_h}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="percent icon"></i>
+                <div class="content">
+                    <div class="header">Memory Utilization</div>
+                    {{host.status.memory.percent_h}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="circle icon"></i>
+                <div class="content">
+                    <div class="header">Swap Size</div>
+                    {{host.info.swap.total_h}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="circle outline icon"></i>
+                <div class="content">
+                    <div class="header">Swap Free</div>
+                    {{host.full_status.swap.free_h}}
+                </div>
+            </div>
+            <div class="item">
+                <i class="percent icon"></i>
+                <div class="content">
+                    <div class="header">Swap Utilization</div>
+                    {{host.full_status.swap.percent_h}}
+                </div>
+            </div>
+        </div>
+        <div ng-show="host.full_status.memory">
+            <div class="ui divider"></div>
+            <div class="multi-percent-bar">
+                <div class="inner mem-used" ng-style="{'width': host.full_status.memory.used_percent + '%'}"></div>
+                <div class="inner mem-buffers" ng-style="{'width': host.full_status.memory.buffers_percent + '%', 'left': host.full_status.memory.used_percent + '%'}"></div>
+                <div class="inner mem-cached" ng-style="{'width': host.full_status.memory.cached_percent + '%', 'left': host.full_status.memory.used_percent + host.full_status.memory.buffers_percent + '%'}"></div>
+            </div>
+            <div class="legend">
+                <div class="items">
+                    <div class="item">
+                        <i class="color-block mem-used"></i>
+                        <span class="header">Used</span>
+                        {{host.full_status.memory.used_h}}
+                    </div>
+                    <div class="item">
+                        <i class="color-block mem-buffers"></i>
+                        <span class="header">Buffers</span>
+                        {{host.full_status.memory.buffers_h}}
+                    </div>
+                    <div class="item">
+                        <i class="color-block mem-cached"></i>
+                        <span class="header">Cached</span>
+                        {{host.full_status.memory.cached_h}}
+                    </div>
+                    <div class="item">
+                        <i class="color-block"></i>
+                        <span class="header">Free</span>
+                        {{host.full_status.memory.free_h}}
+                    </div>
+                </div>
+                <div class="header">Memory Usage</div>
+            </div>
+        </div>
+    </div>
+    <div class="ui header">
+        <i class="hdd icon"></i>
+        <div class="content">Disk</div>
+    </div>
+    <div class="ui doubling two column grid">
+        <div ng-repeat="partition in host.info.disk.partitions" class="column">
+            <div class="ui segment">
+                <div class="ui horizontal list">
+                    <div class="item">
+                        <i class="hdd outline icon"></i>
+                        <div class="content">
+                            <div class="header">Device</div>
+                            {{partition.device}}
+                        </div>
+                    </div>
+                    <div class="item">
+                        <i class="copy outline icon"></i>
+                        <div class="content">
+                            <div class="header">File System</div>
+                            {{partition.fstype}}
+                        </div>
+                    </div>
+                    <div class="item">
+                        <i class="folder open outline icon"></i>
+                        <div class="content">
+                            <div class="header">Mount Point</div>
+                            {{partition.mountpoint}}
+                        </div>
+                    </div>
+                    <div class="item">
+                        <i class="circle icon"></i>
+                        <div class="content">
+                            <div class="header">Size</div>
+                            {{partition.total_h}}
+                        </div>
+                    </div>
+                </div>
+                <div ng-show="host.full_status.disk.partitions">
+                    <div class="ui divider"></div>
+                    <div class="percent-bar">
+                        <div class="bar">
+                            <div class="inner" ng-style="{'width': host.full_status.disk.partitions[partition.mountpoint].percent+'%'}"></div>
+                        </div>
+                        <div class="number">{{host.full_status.disk.partitions[partition.mountpoint].percent}}%</div>
+                    </div>
+                    <div class="legend">
+                        <div class="items">
+                            <div class="item">
+                                <i class="color-block disk-used"></i>
+                                <span class="header">Used</span>
+                                {{host.full_status.disk.partitions[partition.mountpoint].used_h}}
+                            </div>
+                            <div class="item">
+                                <i class="color-block"></i>
+                                <span class="header">Free</span>
+                                {{host.full_status.disk.partitions[partition.mountpoint].free_h}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ui header">
+        <i class="bolt icon"></i>
+        <div class="content">GPU</div>
+    </div>
+    <div class="ui segment">
+    Under development
+    </div>
+    <div class="ui header">
+        <i class="users icon"></i>
+        <div class="content">Active Users</div>
+    </div>
+    <table class="ui celled unstackable table">
+        <thead><tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th><th>PID</th></tr></thead>
+        <tbody>
+        <tr ng-repeat="user in host.full_status.users">
+            <td>{{user.name}}</td>
+            <td>{{user.terminal}}</td>
+            <td>{{user.host}}</td>
+            <td>{{user.started_h}}</td>
+            <td>{{user.pid}}</td>
+        </tr>
+        </tbody>
+    </table>
+    <div class="footer">
+        Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a>
+    </div>
+</div>
