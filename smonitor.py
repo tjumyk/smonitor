@@ -146,9 +146,28 @@ def socket_update(host_id):
         if host:
             break
     if host:
-        result = _get_remote_data(host, '/api/self_update', (0.2, 60))
-        del host_info[host_id]  # force update host info
-        emit('update_result', {host_id: result})
+        old_label = host_info[host_id]['package']['label']
+        result = _get_remote_data(host, '/api/self_update', (0.2, 30))
+        if result.get('success'):
+            updated = False
+            del host_info[host_id]  # force update host info
+            for _ in range(5):
+                time.sleep(config['monitor']['interval'])
+                new_info = host_info.get(host_id)
+                if new_info is None:  # not yet ready
+                    continue
+                new_label = new_info['package']['label']
+                if new_label == old_label:  # not yet restarted (rare)
+                    del host_info[host_id]
+                else:
+                    updated = True
+                    break
+            if updated:
+                emit('update_result', {host_id: {'success': True}})
+            else:
+                emit('update_result', {host_id: {'error': 'Failed to restart daemon'}})
+        else:
+            emit('update_result', {host_id: result})
 
 
 def _init():
@@ -177,6 +196,7 @@ def _clean_up():  # TODO when to call this?
 
 
 def _restart():
+    time.sleep(1)
     requests.get("http://%s:%d/restart" % (config['manager']['host'], config['manager']['port']))
 
 
