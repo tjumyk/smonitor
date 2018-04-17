@@ -46,10 +46,10 @@
   };
 
   app.controller('RootController', [
-    '$scope', '$http', '$timeout', function($scope, $http, $timeout) {
-      var handle_update_result_message, process_full_status_message, process_info_message, process_status_message;
+    '$scope', '$http', '$timeout', '$interval', function($scope, $http, $timeout, $interval) {
+      var handle_update_result_message, process_full_status_message, process_info_message, process_status_message, update_uptime;
       process_info_message = function(info) {
-        var boot_time_moment, gpu, i, j, len, len1, part, ref, ref1;
+        var gpu, i, j, len, len1, part, ref, ref1;
         if (info.error) {
           return info;
         }
@@ -78,9 +78,9 @@
             part.total_h = human_size(part.total);
           }
         }
-        boot_time_moment = moment.unix(info.boot_time);
-        info.boot_time_h = boot_time_moment.format('lll');
-        info.up_time = boot_time_moment.toNow(true);
+        info.boot_time_moment = moment.unix(info.boot_time);
+        info.boot_time_h = info.boot_time_moment.format('lll');
+        info.up_time = info.boot_time_moment.toNow(true);
         if (info.gpu) {
           ref1 = info.gpu.devices;
           for (j = 0, len1 = ref1.length; j < len1; j++) {
@@ -153,8 +153,31 @@
           }, 5000);
         }
       };
+      update_uptime = function() {
+        var host, host_group, i, len, ref, results;
+        ref = $scope.config.host_groups;
+        results = [];
+        for (i = 0, len = ref.length; i < len; i++) {
+          host_group = ref[i];
+          results.push((function() {
+            var j, len1, ref1, results1;
+            ref1 = host_group.hosts;
+            results1 = [];
+            for (j = 0, len1 = ref1.length; j < len1; j++) {
+              host = ref1[j];
+              if (host.info && host.info.boot_time_moment) {
+                results1.push(host.info.up_time = host.info.boot_time_moment.toNow(true));
+              } else {
+                results1.push(void 0);
+              }
+            }
+            return results1;
+          })());
+        }
+        return results;
+      };
       return $http.get('api/config').then(function(response) {
-        var config, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, ref, ref1, socket;
+        var config, handle, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, ref, ref1, socket;
         $scope.config = config = response.data;
         config.site_title = config.site_name + ' \u00B7 System Monitor';
         $scope.socket = socket = io({
@@ -204,7 +227,7 @@
               return results;
             });
           });
-          return socket.on('update_result', function(message) {
+          socket.on('update_result', function(message) {
             return $timeout(function() {
               var name, result_message, results;
               results = [];
@@ -240,12 +263,16 @@
               return local_host.full_status = process_full_status_message(message);
             });
           });
-          return socket.on('update_result', function(message) {
+          socket.on('update_result', function(message) {
             return $timeout(function() {
               return handle_update_result_message(local_host, message);
             });
           });
         }
+        handle = $interval(update_uptime, 30 * 1000);
+        return $scope.$on('$destroy', function() {
+          return $interval.cancel(handle);
+        });
       });
     }
   ]);
@@ -276,7 +303,7 @@
     '$scope', '$http', '$timeout', '$routeParams', function($scope, $http, $timeout, $routeParams) {
       var host_id;
       host_id = $routeParams['hid'];
-      $scope.$on('$routeChangeStart', function() {
+      $scope.$on('$destroy', function() {
         if ($scope.socket) {
           $scope.socket.emit('disable_full_status', host_id);
         }

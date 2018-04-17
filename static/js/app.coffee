@@ -32,7 +32,7 @@ percent_level = (percent)->
     return 'warning'
   return 'danger'
 
-app.controller('RootController', ['$scope', '$http', '$timeout', ($scope, $http, $timeout)->
+app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($scope, $http, $timeout, $interval)->
   process_info_message = (info)->
     if info.error
       return info
@@ -52,9 +52,9 @@ app.controller('RootController', ['$scope', '$http', '$timeout', ($scope, $http,
     if info.disk.partitions
       for part in info.disk.partitions
         part.total_h = human_size(part.total)
-    boot_time_moment = moment.unix(info.boot_time)
-    info.boot_time_h = boot_time_moment.format('lll')
-    info.up_time = boot_time_moment.toNow(true)
+    info.boot_time_moment = moment.unix(info.boot_time)
+    info.boot_time_h = info.boot_time_moment.format('lll')
+    info.up_time = info.boot_time_moment.toNow(true)
     if info.gpu
       for gpu in info.gpu.devices
         gpu.memory.total_h = human_size(gpu.memory.total)
@@ -108,6 +108,12 @@ app.controller('RootController', ['$scope', '$http', '$timeout', ($scope, $http,
         host.update_result = undefined
       , 5000
 
+  update_uptime = ->
+    for host_group in $scope.config.host_groups
+      for host in host_group.hosts
+        if host.info and host.info.boot_time_moment
+          host.info.up_time = host.info.boot_time_moment.toNow(true)
+
   $http.get('api/config').then (response)->
     $scope.config = config = response.data
 
@@ -157,6 +163,10 @@ app.controller('RootController', ['$scope', '$http', '$timeout', ($scope, $http,
       socket.on 'update_result', (message)->
         $timeout ->
           handle_update_result_message(local_host, message)
+
+    handle = $interval(update_uptime, 30 * 1000)
+    $scope.$on '$destroy', ->
+      $interval.cancel(handle)
 ])
 
 app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http, $timeout)->
@@ -178,7 +188,7 @@ app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http,
 app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', ($scope, $http, $timeout, $routeParams)->
   host_id = $routeParams['hid']
 
-  $scope.$on '$routeChangeStart', ->
+  $scope.$on '$destroy', ->
     if $scope.socket
       $scope.socket.emit('disable_full_status', host_id)
     if $scope.host
