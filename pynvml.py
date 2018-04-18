@@ -233,7 +233,14 @@ nvmlLib = None
 libLoadLock = threading.Lock()
 _nvmlLib_refcount = 0 # Incremented on each nvmlInit and decremented on nvmlShutdown
 
+
+# Dummy class declaration for IDE inspection, will be overrided by _extractNVMLErrorsAsClasses()
 class NVMLError_Uninitialized(Exception):
+    pass
+
+
+# Dummy class declaration for IDE inspection, will be overrided by _extractNVMLErrorsAsClasses()
+class NVMLError_NotSupported(Exception):
     pass
 
 ## Error Checking ##

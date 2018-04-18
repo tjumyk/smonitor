@@ -11,7 +11,7 @@
         templateUrl: 'static/ui/home.html?t=1804181',
         controller: 'HomeController'
       }).when('/hosts/:hid', {
-        templateUrl: 'static/ui/host.html?t=1804183',
+        templateUrl: 'static/ui/host.html?t=1804191',
         controller: 'HostController'
       }).otherwise({
         templateUrl: 'static/ui/404.html'
@@ -61,6 +61,13 @@
             total_h: 'N/A'
           };
         }
+        if (info.disk.boot) {
+          info.disk.boot.total_h = human_size(info.disk.boot.total);
+        } else {
+          info.disk.boot = {
+            total_h: 'N/A'
+          };
+        }
         if (info.disk.others) {
           info.disk.others.total_h = human_size(info.disk.others.total);
         } else {
@@ -102,6 +109,14 @@
             percent_h: 'N/A'
           };
         }
+        if (status.disk.boot) {
+          status.disk.boot.percent_h = status.disk.boot.percent + '%';
+          status.disk.boot.percent_level = percent_level(status.disk.boot.percent);
+        } else {
+          status.disk.boot = {
+            percent_h: 'N/A'
+          };
+        }
         if (status.disk.others) {
           status.disk.others.percent_h = status.disk.others.percent + '%';
           status.disk.others.percent_level = percent_level(status.disk.others.percent);
@@ -117,7 +132,7 @@
         return status;
       };
       process_full_status_message = function(status) {
-        var gpu, i, j, len, len1, mount, part, ref, ref1, ref2, user;
+        var gpu, i, j, len, len1, name, part, ref, ref1, ref2, user;
         if (status.error) {
           return status;
         }
@@ -131,8 +146,8 @@
           status.swap.percent_h = status.swap.percent + '%';
         }
         ref = status.disk.partitions;
-        for (mount in ref) {
-          part = ref[mount];
+        for (name in ref) {
+          part = ref[name];
           part.free_h = human_size(part.free);
           part.used_h = human_size(part.used);
           part.percent_level = percent_level(part.percent);
@@ -148,10 +163,14 @@
             gpu = ref2[j];
             gpu.memory.free_h = human_size(gpu.memory.free);
             gpu.memory.used_h = human_size(gpu.memory.used);
-            gpu.power.usage_h = Math.round(gpu.power.usage / 100) / 10 + 'W';
-            gpu.power.limit_h = Math.round(gpu.power.limit / 100) / 10 + 'W';
-            gpu.power.percent = Math.round(gpu.power.usage / gpu.power.limit * 100);
-            gpu.performance_percent = gpu.performance * (-100 / 15) + 100;
+            if (gpu.power) {
+              gpu.power.usage_h = Math.round(gpu.power.usage / 100) / 10 + 'W';
+              gpu.power.limit_h = Math.round(gpu.power.limit / 100) / 10 + 'W';
+              gpu.power.percent = Math.round(gpu.power.usage / gpu.power.limit * 100);
+            }
+            if (gpu.performance !== void 0) {
+              gpu.performance_percent = gpu.performance * (-100 / 15) + 100;
+            }
           }
         }
         return status;

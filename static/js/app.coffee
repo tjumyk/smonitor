@@ -7,7 +7,7 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
       templateUrl: 'static/ui/home.html?t=1804181'
       controller: 'HomeController'
     .when '/hosts/:hid',
-      templateUrl: 'static/ui/host.html?t=1804183'
+      templateUrl: 'static/ui/host.html?t=1804191'
       controller: 'HostController'
     .otherwise
       templateUrl: 'static/ui/404.html'
@@ -42,6 +42,11 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
     else
       info.disk.system =
         total_h: 'N/A'
+    if info.disk.boot
+      info.disk.boot.total_h = human_size(info.disk.boot.total)
+    else
+      info.disk.boot =
+        total_h: 'N/A'
     if info.disk.others
       info.disk.others.total_h = human_size(info.disk.others.total)
     else
@@ -69,6 +74,12 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
     else
       status.disk.system =
         percent_h: 'N/A'
+    if status.disk.boot
+      status.disk.boot.percent_h = status.disk.boot.percent + '%'
+      status.disk.boot.percent_level = percent_level(status.disk.boot.percent)
+    else
+      status.disk.boot =
+        percent_h: 'N/A'
     if status.disk.others
       status.disk.others.percent_h = status.disk.others.percent + '%'
       status.disk.others.percent_level = percent_level(status.disk.others.percent)
@@ -92,7 +103,7 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
     if status.swap
       status.swap.free_h = human_size(status.swap.free)
       status.swap.percent_h = status.swap.percent + '%'
-    for mount, part of status.disk.partitions
+    for name, part of status.disk.partitions
       part.free_h = human_size(part.free)
       part.used_h = human_size(part.used)
       part.percent_level = percent_level(part.percent)
@@ -102,10 +113,12 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       for gpu in status.gpu.devices
         gpu.memory.free_h = human_size(gpu.memory.free)
         gpu.memory.used_h = human_size(gpu.memory.used)
-        gpu.power.usage_h = Math.round(gpu.power.usage / 100) / 10 + 'W'
-        gpu.power.limit_h = Math.round(gpu.power.limit / 100) / 10 + 'W'
-        gpu.power.percent = Math.round(gpu.power.usage/gpu.power.limit*100)
-        gpu.performance_percent = gpu.performance * (-100/15) + 100
+        if gpu.power
+          gpu.power.usage_h = Math.round(gpu.power.usage / 100) / 10 + 'W'
+          gpu.power.limit_h = Math.round(gpu.power.limit / 100) / 10 + 'W'
+          gpu.power.percent = Math.round(gpu.power.usage/gpu.power.limit*100)
+        if gpu.performance != undefined
+          gpu.performance_percent = gpu.performance * (-100/15) + 100
     return status
 
   handle_update_result_message = (host, message)->

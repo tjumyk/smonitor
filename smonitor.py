@@ -398,26 +398,42 @@ def _update_platform_info():
 def _update_psutil_static_info():
     vm = psutil.virtual_memory()
     swap = psutil.swap_memory()
-    partitions = []
     sys_partition = None
     boot_partition = None
     other_partitions = None
     other_partitions_total = 0
+    partitions = {}
     for part in psutil.disk_partitions():
-        usage = psutil.disk_usage(part.mountpoint)
-        if part.mountpoint == '/':
+        device = partitions.get(part.device)
+        if device is None:
+            device = {
+                'name': part.device,
+                'fstype': part.fstype,
+                # 'opts': part.opts,
+                'mount_points': [],
+            }
+            partitions[part.device] = device
+        device['mount_points'].append(part.mountpoint)
+    static_info['private']['disk'] = {
+        'partitions': partitions,
+        'others': []
+    }
+    for name, device in partitions.items():
+        mount_points = device['mount_points']
+        usage = psutil.disk_usage(mount_points[0])
+        if '/' in mount_points:
             sys_partition = {'total': usage.total}
-        elif part.mountpoint == '/boot/efi':
+            device['category'] = 'system'
+            static_info['private']['disk']['system'] = device
+        elif '/boot/efi' in mount_points:
             boot_partition = {'total': usage.total}
+            device['category'] = 'boot'
+            static_info['private']['disk']['boot'] = device
         else:
             other_partitions_total += usage.total
-        partitions.append({
-            'device': part.device,
-            'mountpoint': part.mountpoint,
-            'fstype': part.fstype,
-            # 'opts': part.opts,
-            'total': usage.total
-        })
+            device['category'] = 'others'
+            static_info['private']['disk']['others'].append(device)
+        device['total'] = usage.total
     if other_partitions_total > 0:
         other_partitions = {
             'total': other_partitions_total
@@ -439,7 +455,7 @@ def _update_psutil_static_info():
             'system': sys_partition,
             'boot': boot_partition,
             'others': other_partitions,
-            'partitions': partitions
+            'partitions': sorted(partitions.values(), key=lambda d: d['name'])
         },
         'boot_time': psutil.boot_time()
     })
@@ -479,21 +495,20 @@ def _update_nvml_static_info():
 
 def _get_status_psutil():
     vm = psutil.virtual_memory()
-    sys_partition = None
+    sys_usage = psutil.disk_usage(static_info['private']['disk']['system']['mount_points'][0])
+    sys_partition = {'percent': sys_usage.percent}
+    boot_partition = None
+    boot_device = static_info['private']['disk'].get('boot')
+    if boot_device:
+        boot_usage = psutil.disk_usage(boot_device['mount_points'][0])
+        boot_partition = {'percent': boot_usage.percent}
     other_partitions = None
     other_partitions_total = 0
     other_partitions_free = 0
-    for part in psutil.disk_partitions():
-        usage = psutil.disk_usage(part.mountpoint)
-        if part.mountpoint == '/':
-            sys_partition = {
-                'percent': usage.percent
-            }
-        elif part.mountpoint == '/boot/efi':
-            continue
-        else:
-            other_partitions_total += usage.total
-            other_partitions_free += usage.free
+    for other in static_info['private']['disk']['others']:
+        usage = psutil.disk_usage(other['mount_points'][0])
+        other_partitions_total += usage.total
+        other_partitions_free += usage.free
     if other_partitions_total > 0:
         other_partitions = {
             'percent': round(1000 * (1 - other_partitions_free / other_partitions_total)) / 10
@@ -507,6 +522,7 @@ def _get_status_psutil():
         },
         'disk': {
             'system': sys_partition,
+            'boot': boot_partition,
             'others': other_partitions
         }
     }
@@ -518,32 +534,30 @@ def _get_full_status_psutil():
     swap = psutil.swap_memory()
     sys_partition = None
     boot_partition = None
+    boot_device = static_info['private']['disk'].get('boot')
     other_partitions = None
     other_partitions_total = 0
     other_partitions_free = 0
-    partitions = {}
-    for part in psutil.disk_partitions():
-        usage = psutil.disk_usage(part.mountpoint)
-        if part.mountpoint == '/':
-            sys_partition = {
-                'percent': usage.percent
-            }
-        elif part.mountpoint == '/boot/efi':
-            boot_partition = {
-                'percent': usage.percent
-            }
-        else:
-            other_partitions_total += usage.total
-            other_partitions_free += usage.free
-        partitions[part.mountpoint] = {
+    partition_usages = {}
+    for name, device in static_info['private']['disk']['partitions'].items():
+        usage = psutil.disk_usage(device['mount_points'][0])
+        partition_usages[name] = {
             'free': usage.free,
             'used': usage.used,
             'percent': usage.percent
         }
+        if name == static_info['private']['disk']['system']['name']:
+            sys_partition = {'percent': usage.percent}
+        elif boot_device is not None and name == boot_device['name']:
+            boot_partition = {'percent': usage.percent}
+        else:
+            other_partitions_total += usage.total
+            other_partitions_free += usage.free
     if other_partitions_total > 0:
         other_partitions = {
             'percent': round(1000 * (1 - other_partitions_free / other_partitions_total)) / 10
         }
+
     status = {
         'basic': {
             'cpu': {
@@ -554,6 +568,7 @@ def _get_full_status_psutil():
             },
             'disk': {
                 'system': sys_partition,
+                'boot': boot_partition,
                 'others': other_partitions
             }
         },
@@ -577,8 +592,7 @@ def _get_full_status_psutil():
                 'percent': swap.percent
             },
             'disk': {
-                'boot': boot_partition,
-                'partitions': partitions
+                'partitions': partition_usages
             },
             'users': [{
                 'name': u.name,
@@ -625,20 +639,33 @@ def _get_full_status_nvml():
             },
             'processes': len(process_info)
         })
-        devices_full_status.append({
+        full_status = {
             'memory': {
                 'free': mem_info.free,
                 'used': mem_info.used
             },
-            'fan_speed': pynvml.nvmlDeviceGetFanSpeed(handle),
-            'temperature': pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU),
-            'performance': pynvml.nvmlDeviceGetPerformanceState(handle),
-            'power': {
+            'process_list': [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
+        }
+        try:
+            full_status['fan_speed'] = pynvml.nvmlDeviceGetFanSpeed(handle)
+        except pynvml.NVMLError_NotSupported:
+            pass
+        try:
+            full_status['temperature'] = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+        except pynvml.NVMLError_NotSupported:
+            pass
+        try:
+            full_status['performance'] = pynvml.nvmlDeviceGetPerformanceState(handle)
+        except pynvml.NVMLError_NotSupported:
+            pass
+        try:
+            full_status['power'] = {
                 'usage': pynvml.nvmlDeviceGetPowerUsage(handle),
                 'limit': pynvml.nvmlDeviceGetPowerManagementLimit(handle)
-            },
-            'process_list': [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
-        })
+            }
+        except pynvml.NVMLError_NotSupported:
+            pass
+        devices_full_status.append(full_status)
     status = {
         'basic': {
             'devices': devices_status
