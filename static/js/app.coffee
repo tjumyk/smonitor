@@ -7,7 +7,7 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
       templateUrl: 'static/ui/home.html?t=1804181'
       controller: 'HomeController'
     .when '/hosts/:hid',
-      templateUrl: 'static/ui/host.html?t=1804182'
+      templateUrl: 'static/ui/host.html?t=1804183'
       controller: 'HostController'
     .otherwise
       templateUrl: 'static/ui/404.html'
@@ -98,6 +98,14 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       part.percent_level = percent_level(part.percent)
     for user in status.users
       user.started_h = moment.unix(user.started).toNow()
+    if status.gpu
+      for gpu in status.gpu.devices
+        gpu.memory.free_h = human_size(gpu.memory.free)
+        gpu.memory.used_h = human_size(gpu.memory.used)
+        gpu.power.usage_h = Math.round(gpu.power.usage / 100) / 10 + 'W'
+        gpu.power.limit_h = Math.round(gpu.power.limit / 100) / 10 + 'W'
+        gpu.power.percent = Math.round(gpu.power.usage/gpu.power.limit*100)
+        gpu.performance_percent = gpu.performance * (-100/15) + 100
     return status
 
   handle_update_result_message = (host, message)->

@@ -11,7 +11,7 @@
         templateUrl: 'static/ui/home.html?t=1804181',
         controller: 'HomeController'
       }).when('/hosts/:hid', {
-        templateUrl: 'static/ui/host.html?t=1804182',
+        templateUrl: 'static/ui/host.html?t=1804183',
         controller: 'HostController'
       }).otherwise({
         templateUrl: 'static/ui/404.html'
@@ -117,7 +117,7 @@
         return status;
       };
       process_full_status_message = function(status) {
-        var i, len, mount, part, ref, ref1, user;
+        var gpu, i, j, len, len1, mount, part, ref, ref1, ref2, user;
         if (status.error) {
           return status;
         }
@@ -141,6 +141,18 @@
         for (i = 0, len = ref1.length; i < len; i++) {
           user = ref1[i];
           user.started_h = moment.unix(user.started).toNow();
+        }
+        if (status.gpu) {
+          ref2 = status.gpu.devices;
+          for (j = 0, len1 = ref2.length; j < len1; j++) {
+            gpu = ref2[j];
+            gpu.memory.free_h = human_size(gpu.memory.free);
+            gpu.memory.used_h = human_size(gpu.memory.used);
+            gpu.power.usage_h = Math.round(gpu.power.usage / 100) / 10 + 'W';
+            gpu.power.limit_h = Math.round(gpu.power.limit / 100) / 10 + 'W';
+            gpu.power.percent = Math.round(gpu.power.usage / gpu.power.limit * 100);
+            gpu.performance_percent = gpu.performance * (-100 / 15) + 100;
+          }
         }
         return status;
       };

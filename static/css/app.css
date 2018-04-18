@@ -199,4 +199,7 @@ body,
   overflow-x: auto;
   width: 100%;
 }
+.centered-text {
+  text-align: center;
+}
 /*# sourceMappingURL=app.css.map */

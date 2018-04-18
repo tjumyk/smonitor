@@ -626,6 +626,17 @@ def _get_full_status_nvml():
             'processes': len(process_info)
         })
         devices_full_status.append({
+            'memory': {
+                'free': mem_info.free,
+                'used': mem_info.used
+            },
+            'fan_speed': pynvml.nvmlDeviceGetFanSpeed(handle),
+            'temperature': pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU),
+            'performance': pynvml.nvmlDeviceGetPerformanceState(handle),
+            'power': {
+                'usage': pynvml.nvmlDeviceGetPowerUsage(handle),
+                'limit': pynvml.nvmlDeviceGetPowerManagementLimit(handle)
+            },
             'process_list': [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
         })
     status = {
