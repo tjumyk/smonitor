@@ -217,9 +217,9 @@
       return $http.get('api/config').then(function(response) {
         var config, handle, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, raw_config, ref, ref1, socket;
         raw_config = response.data;
-        $scope.config = config = angular.copy(raw_config);
+        config = angular.copy(raw_config);
         config.site_title = config.site_name + ' \u00B7 System Monitor';
-        $scope.socket = socket = io({
+        socket = io({
           path: window.location.pathname + 'socket.io'
         });
         socket.on('pong', function(latency) {
@@ -320,6 +320,8 @@
             });
           });
         }
+        $scope.config = config;
+        $scope.socket = socket;
         handle = $interval(update_uptime, 30 * 1000);
         return $scope.$on('$destroy', function() {
           return $interval.cancel(handle);
@@ -351,14 +353,14 @@
   ]);
 
   app.controller('HostController', [
-    '$scope', '$http', '$timeout', '$routeParams', function($scope, $http, $timeout, $routeParams) {
+    '$scope', '$http', '$timeout', '$routeParams', '$location', function($scope, $http, $timeout, $routeParams, $location) {
       var host_id, re_enable_full_status;
       host_id = $routeParams['hid'];
       re_enable_full_status = function() {
         return $scope.socket.emit('enable_full_status', host_id);
       };
       $scope.$on('$destroy', function() {
-        if ($scope.socket) {
+        if ($scope.socket && $scope.host) {
           $scope.socket.off('reconnect', re_enable_full_status);
           $scope.socket.emit('disable_full_status', host_id);
         }
@@ -366,13 +368,12 @@
           return $scope.host.full_status = void 0;
         }
       });
-      $scope.$watch('config', function(config) {
-        var host, host_group, i, j, len, len1, ref, ref1, results;
-        if (!config) {
+      $scope.$watch('socket', function(socket) {
+        var host, host_group, i, j, len, len1, ref, ref1;
+        if (!socket) {
           return;
         }
         ref = $scope.config.host_groups;
-        results = [];
         for (i = 0, len = ref.length; i < len; i++) {
           host_group = ref[i];
           ref1 = host_group.hosts;
@@ -386,14 +387,10 @@
           }
           if ($scope.host) {
             break;
-          } else {
-            results.push(void 0);
           }
         }
-        return results;
-      });
-      $scope.$watch('socket', function(socket) {
-        if (!socket) {
+        if (!$scope.host) {
+          $location.path('/404').replace();
           return;
         }
         socket.emit('enable_full_status', host_id);

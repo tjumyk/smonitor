@@ -141,13 +141,12 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
 
   $http.get('api/config').then (response)->
     raw_config = response.data
-    $scope.config = config = angular.copy(raw_config)
-
+    config = angular.copy(raw_config)
     config.site_title = config.site_name + ' \u00B7 System Monitor'
-    $scope.socket = socket = io({
+
+    socket = io({
       path: window.location.pathname + 'socket.io'
     })
-
     socket.on 'pong', (latency)->
       $timeout ->
         $scope.ping = latency
@@ -199,6 +198,9 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
         $timeout ->
           handle_update_result_message(local_host, message)
 
+    $scope.config = config
+    $scope.socket = socket
+
     handle = $interval(update_uptime, 30 * 1000)
     $scope.$on '$destroy', ->
       $interval.cancel(handle)
@@ -220,21 +222,21 @@ app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http,
         alert(response.data.error)
 ]
 
-app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', ($scope, $http, $timeout, $routeParams)->
+app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', '$location', ($scope, $http, $timeout, $routeParams, $location)->
   host_id = $routeParams['hid']
 
   re_enable_full_status = ->
     $scope.socket.emit('enable_full_status', host_id)
 
   $scope.$on '$destroy', ->
-    if $scope.socket
+    if $scope.socket and $scope.host
       $scope.socket.off('reconnect', re_enable_full_status)
       $scope.socket.emit('disable_full_status', host_id)
     if $scope.host
       $scope.host.full_status = undefined
 
-  $scope.$watch 'config', (config)->
-    return if !config
+  $scope.$watch 'socket', (socket)->
+    return if !socket
     for host_group in $scope.config.host_groups
       for host in host_group.hosts
         if host.name == host_id
@@ -243,9 +245,9 @@ app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams',
           break
       if $scope.host
         break
-
-  $scope.$watch 'socket', (socket)->
-    return if !socket
+    if !$scope.host
+      $location.path('/404').replace()
+      return
     socket.emit('enable_full_status', host_id)
     socket.on('reconnect', re_enable_full_status)
 
