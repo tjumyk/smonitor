@@ -4,14 +4,18 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
   $locationProvider.html5Mode(false)
   $routeProvider
     .when '/',
-      templateUrl: 'static/ui/home.html?t=1804181'
+      templateUrl: 'static/ui/home.html?t=1804191'
       controller: 'HomeController'
     .when '/hosts/:hid',
-      templateUrl: 'static/ui/host.html?t=1804191'
+      templateUrl: 'static/ui/host.html?t=1804192'
       controller: 'HostController'
     .otherwise
       templateUrl: 'static/ui/404.html'
 ]
+
+app.directive 'appFooter', ->
+  restrict: 'A'
+  templateUrl: 'static/ui/footer.html'
 
 human_size = (size)->
   units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -144,6 +148,9 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       path: window.location.pathname + 'socket.io'
     })
 
+    socket.on 'pong', (latency)->
+      $timeout ->
+        $scope.ping = latency
     socket.on 'reconnect', ->
       $http.get('api/config').then (response)->
         if not angular.equals(raw_config, response.data)

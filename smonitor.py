@@ -117,11 +117,6 @@ def socket_disconnect():
         print('[Socket Disconnected] ID=%s, total clients: %d' % (request.sid, clients))
 
 
-@socket_io.on('ping')
-def socket_ping():
-    emit('pong')
-
-
 @socket_io.on('enable_full_status')
 def socket_enable_full_status(host):
     global enabled_full_status

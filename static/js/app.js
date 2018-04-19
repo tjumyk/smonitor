@@ -8,16 +8,23 @@
     '$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
       $locationProvider.html5Mode(false);
       return $routeProvider.when('/', {
-        templateUrl: 'static/ui/home.html?t=1804181',
+        templateUrl: 'static/ui/home.html?t=1804191',
         controller: 'HomeController'
       }).when('/hosts/:hid', {
-        templateUrl: 'static/ui/host.html?t=1804191',
+        templateUrl: 'static/ui/host.html?t=1804192',
         controller: 'HostController'
       }).otherwise({
         templateUrl: 'static/ui/404.html'
       });
     }
   ]);
+
+  app.directive('appFooter', function() {
+    return {
+      restrict: 'A',
+      templateUrl: 'static/ui/footer.html'
+    };
+  });
 
   human_size = function(size) {
     var unit_pos, units;
@@ -214,6 +221,11 @@
         config.site_title = config.site_name + ' \u00B7 System Monitor';
         $scope.socket = socket = io({
           path: window.location.pathname + 'socket.io'
+        });
+        socket.on('pong', function(latency) {
+          return $timeout(function() {
+            return $scope.ping = latency;
+          });
         });
         socket.on('reconnect', function() {
           return $http.get('api/config').then(function(response) {

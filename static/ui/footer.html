@@ -1,0 +1,5 @@
+<div class="ui horizontal list">
+    <div class="item">Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a></div>
+    <div class="item" ng-show="socket">Server Ping: <span ng-hide="ping!=undefined">Unknown</span><span ng-show="ping!=undefined">{{ping}}ms</span></div>
+    <div class="item" ng-show="config.package">Server Version: {{config.package.label}} <button class="ui mini button" ng-click="update()" ng-class="{'loading': updating}">Check Update</button></div>
+</div>
