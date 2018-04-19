@@ -151,10 +151,14 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       $timeout ->
         $scope.ping = latency
     socket.on 'reconnect', ->
+      $('.reconnect.dimmer').dimmer('hide')
       $http.get('api/config').then (response)->
         if not angular.equals(raw_config, response.data)
           window.location.reload()
-          return
+    socket.on 'reconnect_attempt', ->
+      $('.reconnect.dimmer').dimmer({
+        'closable': false
+      }).dimmer('set page dimmer', true).dimmer('show')
 
     if config.mode == 'app'
       host_map = {}

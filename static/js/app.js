@@ -228,11 +228,17 @@
           });
         });
         socket.on('reconnect', function() {
+          $('.reconnect.dimmer').dimmer('hide');
           return $http.get('api/config').then(function(response) {
             if (!angular.equals(raw_config, response.data)) {
-              window.location.reload();
+              return window.location.reload();
             }
           });
+        });
+        socket.on('reconnect_attempt', function() {
+          return $('.reconnect.dimmer').dimmer({
+            'closable': false
+          }).dimmer('set page dimmer', true).dimmer('show');
         });
         if (config.mode === 'app') {
           host_map = {};
