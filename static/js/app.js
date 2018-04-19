@@ -214,6 +214,24 @@
         }
         return results;
       };
+      $scope.server_update = function() {
+        $scope.server_updating = true;
+        return $http.get('api/self_update').then(function(response) {
+          $scope.server_updating = false;
+          if (response.data.already_latest) {
+            return alert('Server already up-to-date.');
+          } else {
+            alert('Server updated. Click OK to reload this page.');
+            return window.location.reload();
+          }
+        }, function(response) {
+          $scope.server_updating = false;
+          console.error(response);
+          if (response.data.error) {
+            return alert(response.data.error);
+          }
+        });
+      };
       return $http.get('api/config').then(function(response) {
         var config, handle, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, raw_config, ref, ref1, socket;
         raw_config = response.data;
@@ -336,27 +354,7 @@
     }
   ]);
 
-  app.controller('HomeController', [
-    '$scope', '$http', '$timeout', function($scope, $http, $timeout) {
-      return $scope.update = function() {
-        $scope.updating = true;
-        return $http.get('api/self_update').then(function(response) {
-          $scope.updating = false;
-          if (response.data.already_latest) {
-            return alert('Server already up-to-date.');
-          } else {
-            alert('Server updated. Click OK to reload this page.');
-            return window.location.reload();
-          }
-        }, function(response) {
-          console.error(response);
-          if (response.data.error) {
-            return alert(response.data.error);
-          }
-        });
-      };
-    }
-  ]);
+  app.controller('HomeController', ['$scope', '$http', '$timeout', function($scope, $http, $timeout) {}]);
 
   app.controller('HostController', [
     '$scope', '$http', '$timeout', '$routeParams', '$location', function($scope, $http, $timeout, $routeParams, $location) {
