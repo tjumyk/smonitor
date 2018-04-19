@@ -136,12 +136,19 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
           host.info.up_time = host.info.boot_time_moment.toNow(true)
 
   $http.get('api/config').then (response)->
-    $scope.config = config = response.data
+    raw_config = response.data
+    $scope.config = config = angular.copy(raw_config)
 
     config.site_title = config.site_name + ' \u00B7 System Monitor'
     $scope.socket = socket = io({
       path: window.location.pathname + 'socket.io'
     })
+
+    socket.on 'reconnect', ->
+      $http.get('api/config').then (response)->
+        if not angular.equals(raw_config, response.data)
+          window.location.reload()
+          return
 
     if config.mode == 'app'
       host_map = {}
@@ -209,8 +216,12 @@ app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http,
 app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', ($scope, $http, $timeout, $routeParams)->
   host_id = $routeParams['hid']
 
+  re_enable_full_status = ->
+    $scope.socket.emit('enable_full_status', host_id)
+
   $scope.$on '$destroy', ->
     if $scope.socket
+      $scope.socket.off('reconnect', re_enable_full_status)
       $scope.socket.emit('disable_full_status', host_id)
     if $scope.host
       $scope.host.full_status = undefined
@@ -229,6 +240,7 @@ app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams',
   $scope.$watch 'socket', (socket)->
     return if !socket
     socket.emit('enable_full_status', host_id)
+    socket.on('reconnect', re_enable_full_status)
 
   $scope.update = ->
     if $scope.host

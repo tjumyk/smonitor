@@ -208,11 +208,19 @@
         return results;
       };
       return $http.get('api/config').then(function(response) {
-        var config, handle, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, ref, ref1, socket;
-        $scope.config = config = response.data;
+        var config, handle, host, host_group, host_map, i, j, len, len1, local_host, local_host_group, raw_config, ref, ref1, socket;
+        raw_config = response.data;
+        $scope.config = config = angular.copy(raw_config);
         config.site_title = config.site_name + ' \u00B7 System Monitor';
         $scope.socket = socket = io({
           path: window.location.pathname + 'socket.io'
+        });
+        socket.on('reconnect', function() {
+          return $http.get('api/config').then(function(response) {
+            if (!angular.equals(raw_config, response.data)) {
+              window.location.reload();
+            }
+          });
         });
         if (config.mode === 'app') {
           host_map = {};
@@ -332,10 +340,14 @@
 
   app.controller('HostController', [
     '$scope', '$http', '$timeout', '$routeParams', function($scope, $http, $timeout, $routeParams) {
-      var host_id;
+      var host_id, re_enable_full_status;
       host_id = $routeParams['hid'];
+      re_enable_full_status = function() {
+        return $scope.socket.emit('enable_full_status', host_id);
+      };
       $scope.$on('$destroy', function() {
         if ($scope.socket) {
+          $scope.socket.off('reconnect', re_enable_full_status);
           $scope.socket.emit('disable_full_status', host_id);
         }
         if ($scope.host) {
@@ -372,7 +384,8 @@
         if (!socket) {
           return;
         }
-        return socket.emit('enable_full_status', host_id);
+        socket.emit('enable_full_status', host_id);
+        return socket.on('reconnect', re_enable_full_status);
       });
       return $scope.update = function() {
         if ($scope.host) {
