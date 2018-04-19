@@ -362,7 +362,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="content">
+                <div class="content" ng-show="host.full_status.gpu.devices[gpu.index].fan_speed!==undefined || host.full_status.gpu.devices[gpu.index].temperature!==undefined">
                     <div ng-show="host.full_status.gpu.devices[gpu.index].fan_speed!==undefined">
                         <i class="asterisk icon"></i>
                         Fan Speed
@@ -386,7 +386,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="content">
+                <div class="content" ng-show="host.full_status.gpu.devices[gpu.index].power || host.full_status.gpu.devices[gpu.index].performance!==undefined">
                     <div ng-show="host.full_status.gpu.devices[gpu.index].power">
                         <i class="bolt icon"></i>
                         Power Usage
