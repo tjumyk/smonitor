@@ -1,11 +1,11 @@
 import platform
-import subprocess
 
 import distro
 import psutil
 from cpuinfo import cpuinfo
 
 import pynvml
+import repository
 
 _nvml_inited = False
 _static_info = {
@@ -66,9 +66,8 @@ def get_full_status():
 def _get_package_info():
     info = None
     try:
-        git_label = subprocess.check_output(["git", "describe", "--always"]).decode().strip()
         info = {
-            "label": git_label
+            "label": repository.get_head()
         }
     except Exception as e:
         print('[Warning] Failed to get the package information: %s' % str(e))

@@ -1,5 +1,4 @@
 import json
-import subprocess
 import threading
 import time
 
@@ -10,6 +9,7 @@ from gevent import monkey
 from requests.adapters import HTTPAdapter
 
 import collector
+import repository
 
 monkey.patch_all()
 
@@ -65,16 +65,15 @@ def get_full_status():
 def self_update():
     print('[Self Update] Started')
     try:
-        subprocess.run(['git', 'fetch'], check=True)
-        labels = subprocess.check_output(['git', 'describe', '--always', 'HEAD', 'FETCH_HEAD']).decode().strip().split()
-        repo_label = labels[0]
-        latest_label = labels[1]
+        labels = repository.fetch()
+        repo_label = labels['head']
+        latest_label = labels['fetch_head']
         runtime_label = collector.get_static_info()['package']['label']
         if runtime_label == latest_label:  # implies repo_label == latest_label
             print('[Self Update] Already up-to-date')
             return jsonify(success=True, already_latest=True, label=latest_label)
         if repo_label != latest_label:
-            subprocess.run(['git', 'pull'], check=True)
+            repository.pull()
         socket_io.start_background_task(target=_restart)
     except Exception as e:
         error = str(e)
