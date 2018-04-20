@@ -30,6 +30,7 @@ def init():
 
 
 def clean_up():
+    global _nvml_inited
     if _nvml_inited:
         try:
             pynvml.nvmlShutdown()
@@ -37,10 +38,13 @@ def clean_up():
         except pynvml.NVMLError as e:
             print('[NVML] NVML Failed to Shutdown: %s' % str(e))
             pass
+    _nvml_inited = False
+    _static_info['public'] = {}
+    _static_info['private'] = {}
 
 
 def get_static_info():
-    return _static_info['public']
+    return _static_info['public'].copy()
 
 
 def get_status():
