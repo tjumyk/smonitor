@@ -213,9 +213,6 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       socket.on 'full_status', (message)->
         $timeout ->
           local_host.full_status = process_full_status_message(message)
-      socket.on 'update_result', (message)->
-        $timeout ->
-          handle_update_result_message(local_host, message)
 
     $scope.config = config
     $scope.socket = socket

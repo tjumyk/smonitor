@@ -141,6 +141,9 @@ def socket_disable_full_status(host):
 
 @socket_io.on('update')
 def socket_update(host_id):
+    if config['monitor']['mode'] != 'app':
+        print('[Warning] socket update is only for remote host update in app mode')
+        return
     host = None
     for host_group in config['monitor']['host_groups']:
         for _host in host_group['hosts']:

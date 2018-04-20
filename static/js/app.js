@@ -338,11 +338,6 @@
               return local_host.full_status = process_full_status_message(message);
             });
           });
-          socket.on('update_result', function(message) {
-            return $timeout(function() {
-              return handle_update_result_message(local_host, message);
-            });
-          });
         }
         $scope.config = config;
         $scope.socket = socket;
