@@ -315,8 +315,7 @@ def _get_remote_data(host, path, timeout):
 collector.init()
 
 if __name__ == '__main__':
-    port = config['server']['port']
-    if len(sys.argv) > 1:
-        port = int(sys.argv[1])
-        config['server']['port'] = port
-    socket_io.run(app, host=config['server']['host'], port=port)
+    try:
+        socket_io.run(app, host=config['server']['host'], port=config['server']['port'])
+    finally:
+        collector.clean_up()  # FIXME will not be called if in WSGI mode
