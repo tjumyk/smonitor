@@ -1,6 +1,5 @@
 import json
 import subprocess
-import sys
 import threading
 import time
 
@@ -150,11 +149,14 @@ def socket_update(host_id):
                 emit('update_result', {host_id: result})
             else:
                 updated = False
-                del host_info[host_id]  # force update
+                if host_id in host_info:
+                    del host_info[host_id]  # force update
                 for _ in range(5):
                     time.sleep(config['monitor']['interval'])
                     info = host_info.get(host_id)
                     if info is None:  # not yet ready
+                        continue
+                    if 'error' in info:  # connection failed
                         continue
                     label = info['package']['label']
                     if label != result.get('latest_label'):
