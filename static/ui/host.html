@@ -195,8 +195,8 @@
             <div class="ui divider"></div>
             <div class="multi-percent-bar">
                 <div class="inner mem-used" ng-style="{'width': host.full_status.memory.used_percent + '%'}"></div>
-                <div class="inner mem-buffers" ng-style="{'width': host.full_status.memory.buffers_percent + '%', 'left': host.full_status.memory.used_percent + '%'}"></div>
-                <div class="inner mem-cached" ng-style="{'width': host.full_status.memory.cached_percent + '%', 'left': host.full_status.memory.used_percent + host.full_status.memory.buffers_percent + '%'}"></div>
+                <div class="inner mem-buffers" ng-show="host.full_status.memory.buffers!=undefined" ng-style="{'width': host.full_status.memory.buffers_percent + '%', 'left': host.full_status.memory.buffers_offset + '%'}"></div>
+                <div class="inner mem-cached" ng-show="host.full_status.memory.cached!=undefined" ng-style="{'width': host.full_status.memory.cached_percent + '%', 'left': host.full_status.memory.cached_offset + '%'}"></div>
             </div>
             <div class="legend">
                 <div class="items">
@@ -205,12 +205,12 @@
                         <span class="header">Used</span>
                         {{host.full_status.memory.used_h}}
                     </div>
-                    <div class="item">
+                    <div class="item" ng-show="host.full_status.memory.buffers!=undefined">
                         <i class="color-block mem-buffers"></i>
                         <span class="header">Buffers</span>
                         {{host.full_status.memory.buffers_h}}
                     </div>
-                    <div class="item">
+                    <div class="item" ng-show="host.full_status.memory.cached!=undefined">
                         <i class="color-block mem-cached"></i>
                         <span class="header">Cached</span>
                         {{host.full_status.memory.cached_h}}
@@ -425,14 +425,14 @@
     </div>
     <div class="table-responsive">
         <table class="ui celled unstackable scrolling table">
-            <thead><tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th><th>PID</th></tr></thead>
+            <thead><tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th><th ng-hide="host.info.platform.system=='Windows'">PID</th></tr></thead>
             <tbody>
             <tr ng-repeat="user in host.full_status.users">
                 <td>{{user.name}}</td>
                 <td>{{user.terminal}}</td>
                 <td>{{user.host}}</td>
                 <td>{{user.started_h}}</td>
-                <td>{{user.pid}}</td>
+                <td ng-hide="host.info.platform.system=='Windows'">{{user.pid}}</td>
             </tr>
             </tbody>
         </table>

@@ -1,4 +1,5 @@
 import platform
+import sys
 
 import distro
 import psutil
@@ -90,6 +91,16 @@ def _update_platform_info():
             'version': version,
             'codename': codename
         }
+    elif system == 'Windows':
+        win_version = sys.getwindowsversion()
+        if win_version.minor:
+            version = "%d.%d" % (win_version.major, win_version.minor)
+        else:
+            version = str(win_version.major)
+        info['distribution'] = {
+            'name': 'Windows',
+            'version': version
+        }
     _static_info['public']['platform'] = info
 
 
@@ -102,6 +113,8 @@ def _update_psutil_static_info():
     other_partitions_total = 0
     partitions = {}
     for part in psutil.disk_partitions():
+        if 'cdrom' in part.opts.split(','):  # skip CD-ROMs (but possibly a bug in psutil)
+            continue
         device = partitions.get(part.device)
         if device is None:
             device = {
@@ -116,18 +129,33 @@ def _update_psutil_static_info():
         'partitions': partitions,
         'others': []
     }
+    system = platform.system()
     for name, device in partitions.items():
         mount_points = device['mount_points']
         usage = psutil.disk_usage(mount_points[0])
-        if '/' in mount_points:
-            sys_partition = {'total': usage.total}
-            device['category'] = 'system'
-            _static_info['private']['disk']['system'] = device
-        elif '/boot/efi' in mount_points:
-            boot_partition = {'total': usage.total}
-            device['category'] = 'boot'
-            _static_info['private']['disk']['boot'] = device
-        else:
+        if system == 'Linux':
+            if '/' in mount_points:
+                sys_partition = {'total': usage.total}
+                device['category'] = 'system'
+                _static_info['private']['disk']['system'] = device
+            elif '/boot/efi' in mount_points:
+                boot_partition = {'total': usage.total}
+                device['category'] = 'boot'
+                _static_info['private']['disk']['boot'] = device
+            else:
+                other_partitions_total += usage.total
+                device['category'] = 'others'
+                _static_info['private']['disk']['others'].append(device)
+        elif system == 'Windows':
+            if 'C:\\' in mount_points:  # FIXME find a better way to decide if it is the system partition
+                sys_partition = {'total': usage.total}
+                device['category'] = 'system'
+                _static_info['private']['disk']['system'] = device
+            else:
+                other_partitions_total += usage.total
+                device['category'] = 'others'
+                _static_info['private']['disk']['others'].append(device)
+        else:  # FIXME find system partition for MacOS or others
             other_partitions_total += usage.total
             device['category'] = 'others'
             _static_info['private']['disk']['others'].append(device)
@@ -193,8 +221,11 @@ def _update_nvml_static_info():
 
 def _get_status_psutil():
     vm = psutil.virtual_memory()
-    sys_usage = psutil.disk_usage(_static_info['private']['disk']['system']['mount_points'][0])
-    sys_partition = {'percent': sys_usage.percent}
+    sys_partition = None
+    sys_device = _static_info['private']['disk'].get('system')
+    if sys_device:
+        sys_usage = psutil.disk_usage(sys_device['mount_points'][0])
+        sys_partition = {'percent': sys_usage.percent}
     boot_partition = None
     boot_device = _static_info['private']['disk'].get('boot')
     if boot_device:
@@ -232,6 +263,7 @@ def _get_full_status_psutil():
     swap = psutil.swap_memory()
     sys_partition = None
     boot_partition = None
+    sys_device = _static_info['private']['disk'].get('system')
     boot_device = _static_info['private']['disk'].get('boot')
     other_partitions = None
     other_partitions_total = 0
@@ -244,7 +276,7 @@ def _get_full_status_psutil():
             'used': usage.used,
             'percent': usage.percent
         }
-        if name == _static_info['private']['disk']['system']['name']:
+        if sys_device is not None and name == sys_device['name']:
             sys_partition = {'percent': usage.percent}
         elif boot_device is not None and name == boot_device['name']:
             boot_partition = {'percent': usage.percent}
@@ -255,6 +287,20 @@ def _get_full_status_psutil():
         other_partitions = {
             'percent': round(1000 * (1 - other_partitions_free / other_partitions_total)) / 10
         }
+
+    memory_status = {
+        'available': vm.available,
+        'used': vm.used,
+        'free': vm.free,
+        'used_percent': round(1000 * vm.used / vm.total) / 10,
+        'free_percent': round(1000 * vm.free / vm.total) / 10
+    }
+
+    if platform.system() == 'Linux':
+        memory_status['buffers'] = vm.buffers
+        memory_status['cached'] = vm.cached
+        memory_status['buffers_percent'] = round(1000 * vm.buffers / vm.total) / 10
+        memory_status['cached_percent'] = round(1000 * vm.cached / vm.total) / 10
 
     status = {
         'basic': {
@@ -274,17 +320,7 @@ def _get_full_status_psutil():
             'cpu': {
                 'percents': psutil.cpu_percent(percpu=True)
             },
-            'memory': {
-                'available': vm.available,
-                'used': vm.used,
-                'free': vm.free,
-                'buffers': vm.buffers,
-                'cached': vm.cached,
-                'used_percent': round(1000 * vm.used / vm.total) / 10,
-                'free_percent': round(1000 * vm.free / vm.total) / 10,
-                'buffers_percent': round(1000 * vm.buffers / vm.total) / 10,
-                'cached_percent': round(1000 * vm.cached / vm.total) / 10
-            },
+            'memory': memory_status,
             'swap': {
                 'free': swap.free,
                 'percent': swap.percent

@@ -101,9 +101,15 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       return status
     status.memory.available_h = human_size(status.memory.available)
     status.memory.used_h = human_size(status.memory.used)
-    status.memory.buffers_h = human_size(status.memory.buffers)
-    status.memory.cached_h = human_size(status.memory.cached)
     status.memory.free_h = human_size(status.memory.free)
+    if status.memory.buffers != undefined
+      status.memory.buffers_h = human_size(status.memory.buffers)
+      status.memory.buffers_offset = status.memory.used_percent
+    if status.memory.cached != undefined
+      status.memory.cached_h = human_size(status.memory.cached)
+      status.memory.cached_offset = status.memory.used_percent
+      if status.memory.buffers != undefined
+        status.memory.cached_offset += status.memory.buffers_percent
     if status.swap
       status.swap.free_h = human_size(status.swap.free)
       status.swap.percent_h = status.swap.percent + '%'
