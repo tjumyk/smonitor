@@ -302,10 +302,10 @@ def _get_full_status_psutil():
             info['memory_info'] = mem_info_dict
             info['memory_percent'] = round(info['memory_percent'] * 10) / 10
             _process_info[info['pid']] = info
-    top_cpu_processes = sorted(filter(lambda i: i['cpu_percent'] > 0, _process_info.values()),
-                               key=lambda info: info['cpu_percent'], reverse=True)[:10]
-    top_mem_processes = sorted(filter(lambda i: i['memory_percent'] > 0, _process_info.values()),
-                               key=lambda info: info['memory_percent'], reverse=True)[:10]
+    top_cpu_processes = sorted(filter(lambda v: v['cpu_percent'] > 0, _process_info.values()),
+                               key=lambda v: v['cpu_percent'], reverse=True)[:10]
+    top_mem_processes = sorted(filter(lambda v: v['memory_percent'] > 0, _process_info.values()),
+                               key=lambda v: v['memory_percent'], reverse=True)[:10]
 
     memory_status = {
         'available': vm.available,
