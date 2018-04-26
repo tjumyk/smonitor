@@ -54,7 +54,7 @@
 
   app.controller('RootController', [
     '$scope', '$http', '$timeout', '$interval', function($scope, $http, $timeout, $interval) {
-      var handle_update_result_message, process_full_status_message, process_info_message, process_proccess_info, process_status_message, update_uptime;
+      var format_cpu_time, handle_update_result_message, process_full_status_message, process_info_message, process_proccess_info, process_status_message, update_uptime;
       process_info_message = function(info) {
         var gpu, i, j, len, len1, part, ref, ref1;
         if (info.error) {
@@ -207,12 +207,38 @@
         return status;
       };
       process_proccess_info = function(info) {
+        var key, ref, time;
+        ref = info.cpu_times;
+        for (key in ref) {
+          time = ref[key];
+          info.cpu_times[key + '_h'] = format_cpu_time(time);
+        }
         info.memory_info.rss_h = human_size(info.memory_info.rss);
         info.memory_info.vms_h = human_size(info.memory_info.vms);
         info.memory_info.shared_h = human_size(info.memory_info.shared);
         if (info.gpu_memory !== void 0) {
           return info.gpu_memory_h = human_size(info.gpu_memory);
         }
+      };
+      format_cpu_time = function(time) {
+        var hours, minutes, output;
+        hours = Math.floor(time / 3600);
+        time -= hours * 3600;
+        minutes = Math.floor(time / 60);
+        time -= minutes * 60;
+        output = '';
+        if (hours > 0) {
+          output += hours + 'h';
+        }
+        if (minutes < 10) {
+          output += '0';
+        }
+        output += minutes + ':';
+        if (time < 10) {
+          output += '0';
+        }
+        output += time.toFixed(2);
+        return output;
       };
       handle_update_result_message = function(host, message) {
         host.update_result = message;

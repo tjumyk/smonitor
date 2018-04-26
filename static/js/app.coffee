@@ -138,11 +138,30 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
     return status
 
   process_proccess_info = (info)->
+    for key, time of info.cpu_times
+      info.cpu_times[key+'_h'] = format_cpu_time(time)
     info.memory_info.rss_h = human_size(info.memory_info.rss)
     info.memory_info.vms_h = human_size(info.memory_info.vms)
     info.memory_info.shared_h = human_size(info.memory_info.shared)
     if info.gpu_memory != undefined
       info.gpu_memory_h = human_size(info.gpu_memory)
+
+  format_cpu_time = (time)->
+    hours = Math.floor(time / 3600)
+    time -= hours * 3600
+    minutes = Math.floor(time / 60)
+    time -= minutes * 60
+    output = ''
+    if hours > 0
+      output += hours+'h'
+    if minutes < 10
+      output += '0'
+    output += minutes + ':'
+    if time < 10
+      output += '0'
+    output += time.toFixed(2)
+    return output
+
 
   handle_update_result_message = (host, message)->
     host.update_result = message

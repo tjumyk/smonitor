@@ -155,7 +155,7 @@
                         <td>{{p.status}}</td>
                         <td>{{p.cpu_percent}}</td>
                         <td>{{p.memory_percent}}</td>
-                        <td>{{p.cpu_times.total}}</td>
+                        <td>{{p.cpu_times.total_h}}</td>
                         <td>{{p.cmdline.join(' ')}}</td>
                     </tr>
                     </tbody>
@@ -259,7 +259,7 @@
                         <td>{{p.status}}</td>
                         <td>{{p.cpu_percent}}</td>
                         <td>{{p.memory_percent}}</td>
-                        <td>{{p.cpu_times.total}}</td>
+                        <td>{{p.cpu_times.total_h}}</td>
                         <td>{{p.cmdline.join(' ')}}</td>
                     </tr>
                     </tbody>
@@ -405,7 +405,7 @@
                             </div>
                         </div>
                         <div class="column">
-                            <div class="ui active inverted dimmer" ng-class="{'active': !host.full_status}">
+                            <div class="ui active inverted dimmer" ng-class="{'active': host.full_status.gpu.devices[gpu.index]==undefined}">
                                 <div class="ui loader"></div>
                             </div>
                             <div ng-show="host.full_status.gpu.devices[gpu.index].fan_speed!==undefined">
@@ -471,7 +471,7 @@
                                     <td>{{p.status}}</td>
                                     <td>{{p.cpu_percent}}</td>
                                     <td>{{p.memory_percent}}</td>
-                                    <td>{{p.cpu_times.total}}</td>
+                                    <td>{{p.cpu_times.total_h}}</td>
                                     <td>{{p.cmdline.join(' ')}}</td>
                                 </tr>
                                 </tbody>
