@@ -287,8 +287,8 @@ def _get_full_status_psutil():
 
     with _process_info_lock:
         _process_info.clear()
-        for p in psutil.process_iter(attrs=['pid', 'name', 'username', 'cmdline', 'create_time', 'ppid', 'status',
-                                            'cpu_times', 'cpu_percent', 'cpu_num', 'num_threads',
+        for p in psutil.process_iter(attrs=['pid', 'name', 'username', 'cmdline', 'ppid', 'status',
+                                            'cpu_times', 'cpu_percent',
                                             'memory_info', 'memory_percent']):
             info = p.info
             cpu_time_info = info['cpu_times']
