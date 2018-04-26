@@ -297,9 +297,9 @@ def _get_full_status_psutil():
                 'total': round(100 * (cpu_time_info.user + cpu_time_info.system)) / 100
             }
             mem_info_dict = {'rss': mem_info.rss, 'vms': mem_info.vms}
-            info['memory_info'] = mem_info_dict
-            if 'shared' in mem_info:
+            if hasattr(mem_info, 'shared'):
                 mem_info_dict['shared'] = mem_info.shared
+            info['memory_info'] = mem_info_dict
             info['memory_percent'] = round(info['memory_percent'] * 10) / 10
             _process_info[info['pid']] = info
     top_cpu_processes = sorted(filter(lambda i: i['cpu_percent'] > 0, _process_info.values()),
