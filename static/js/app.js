@@ -11,7 +11,7 @@
         templateUrl: 'static/ui/home.html?t=1804191',
         controller: 'HomeController'
       }).when('/hosts/:hid', {
-        templateUrl: 'static/ui/host.html?t=1804241',
+        templateUrl: 'static/ui/host.html?t=1804261',
         controller: 'HostController'
       }).otherwise({
         templateUrl: 'static/ui/404.html'
@@ -54,7 +54,7 @@
 
   app.controller('RootController', [
     '$scope', '$http', '$timeout', '$interval', function($scope, $http, $timeout, $interval) {
-      var handle_update_result_message, process_full_status_message, process_info_message, process_status_message, update_uptime;
+      var handle_update_result_message, process_full_status_message, process_info_message, process_proccess_info, process_status_message, update_uptime;
       process_info_message = function(info) {
         var gpu, i, j, len, len1, part, ref, ref1;
         if (info.error) {
@@ -139,7 +139,7 @@
         return status;
       };
       process_full_status_message = function(status) {
-        var gpu, i, j, len, len1, name, part, ref, ref1, ref2, user;
+        var gpu, i, j, k, l, len, len1, len2, len3, len4, m, name, part, proc, ref, ref1, ref2, ref3, ref4, ref5, user;
         if (status.error) {
           return status;
         }
@@ -173,10 +173,20 @@
           user = ref1[i];
           user.started_h = moment.unix(user.started).toNow();
         }
+        ref2 = status.cpu.top_processes;
+        for (j = 0, len1 = ref2.length; j < len1; j++) {
+          proc = ref2[j];
+          process_proccess_info(proc);
+        }
+        ref3 = status.memory.top_processes;
+        for (k = 0, len2 = ref3.length; k < len2; k++) {
+          proc = ref3[k];
+          process_proccess_info(proc);
+        }
         if (status.gpu) {
-          ref2 = status.gpu.devices;
-          for (j = 0, len1 = ref2.length; j < len1; j++) {
-            gpu = ref2[j];
+          ref4 = status.gpu.devices;
+          for (l = 0, len3 = ref4.length; l < len3; l++) {
+            gpu = ref4[l];
             gpu.memory.free_h = human_size(gpu.memory.free);
             gpu.memory.used_h = human_size(gpu.memory.used);
             if (gpu.power) {
@@ -187,9 +197,22 @@
             if (gpu.performance !== void 0) {
               gpu.performance_percent = gpu.performance * (-100 / 15) + 100;
             }
+            ref5 = gpu.process_list;
+            for (m = 0, len4 = ref5.length; m < len4; m++) {
+              proc = ref5[m];
+              process_proccess_info(proc);
+            }
           }
         }
         return status;
+      };
+      process_proccess_info = function(info) {
+        info.memory_info.rss_h = human_size(info.memory_info.rss);
+        info.memory_info.vms_h = human_size(info.memory_info.vms);
+        info.memory_info.shared_h = human_size(info.memory_info.shared);
+        if (info.gpu_memory !== void 0) {
+          return info.gpu_memory_h = human_size(info.gpu_memory);
+        }
       };
       handle_update_result_message = function(host, message) {
         host.update_result = message;

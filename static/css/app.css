@@ -119,14 +119,12 @@ body,
   margin: 0.9em 0.25rem;
 }
 .percent-bar {
-  display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
 }
 .percent-bar .bar {
-  -webkit-box-flex: 1;
-      -ms-flex: 1;
-          flex: 1;
+  -ms-flex: 1;
+      flex: 1;
 }
 .percent-bar .label {
   margin-right: .4em;
@@ -138,22 +136,31 @@ body,
 }
 .percent-bar > .bar,
 .multi-percent-bar {
-  border: 1px solid grey;
+  border: 1px solid #e6e6e6;
   position: relative;
   height: 1em;
   margin-top: 0.2em;
 }
 .percent-bar > .bar .inner,
-.multi-percent-bar .inner {
+.multi-percent-bar .inner,
+.percent-bar > .bar .inner-secondary,
+.multi-percent-bar .inner-secondary {
   display: inline-block;
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   border: 1px solid transparent;
-  background: #21ba45 !important;
   width: 0;
   transition: width 0.5s ease-out, left 0.5s ease-out;
+}
+.percent-bar > .bar .inner,
+.multi-percent-bar .inner {
+  background: #21ba45 !important;
+}
+.percent-bar > .bar .inner-secondary,
+.multi-percent-bar .inner-secondary {
+  background: #00b5ad;
 }
 .multi-percent-bar .inner.mem-buffers {
   background-color: #5ee37e !important;
@@ -179,7 +186,7 @@ body,
   display: inline-block;
   width: 1em;
   height: 1em;
-  border: 1px solid grey;
+  border: 1px solid #e6e6e6;
 }
 .legend .color-block.mem-used,
 .legend .color-block.disk-used {

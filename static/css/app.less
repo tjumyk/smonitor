@@ -2,6 +2,8 @@
 @color-warning: #fbbd08 !important;
 @color-danger: #db2828 !important;
 @progress-color: @color-success;
+@progress-color-secondary: #00b5ad;
+@progress-border-color: #e6e6e6;
 
 @metric-margin: 0.25rem;
 
@@ -153,20 +155,25 @@ html, body, .vertical-center {
 }
 
 .percent-bar > .bar, .multi-percent-bar {
-  border: 1px solid grey;
+  border: 1px solid @progress-border-color;
   position: relative;
   height: 1em;
   margin-top: 0.2em;
-  .inner {
+  .inner, .inner-secondary {
     display: inline-block;
     position: absolute;
     top: 0;
     left: 0;
     height: 100%;
     border: 1px solid transparent;
-    background: @progress-color;
     width: 0;
     transition: width 0.5s ease-out, left 0.5s ease-out;
+  }
+  .inner{
+    background: @progress-color;
+  }
+  .inner-secondary{
+    background: @progress-color-secondary;
   }
 }
 
@@ -194,7 +201,7 @@ html, body, .vertical-center {
         display: inline-block;
         width: 1em;
         height: 1em;
-        border: 1px solid grey;
+        border: 1px solid @progress-border-color;
       }
     }
   }

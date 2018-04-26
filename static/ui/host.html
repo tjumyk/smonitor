@@ -127,7 +127,7 @@
                 </div>
             </div>
         </div>
-        <div ng-show="host.full_status.cpu.percents">
+        <div ng-show="host.full_status">
             <div class="ui divider"></div>
             <div class="ui doubling four column grid">
                 <div ng-repeat="p in host.full_status.cpu.percents track by $index" class="column">
@@ -139,6 +139,27 @@
                         <div class="number">{{p}}%</div>
                     </div>
                 </div>
+            </div>
+            <div class="ui divider"></div>
+            <div class="table-responsive">
+                <table class="ui celled unstackable very compact single line sortable table">
+                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th>SHR</th><th>Status</th><th class="sorted descending">CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                    <tbody>
+                    <tr ng-repeat="p in host.full_status.cpu.top_processes">
+                        <td>{{p.pid}}</td>
+                        <td>{{p.ppid}}</td>
+                        <td>{{p.username}}</td>
+                        <td>{{p.memory_info.vms_h}}</td>
+                        <td>{{p.memory_info.rss_h}}</td>
+                        <td>{{p.memory_info.shared_h}}</td>
+                        <td>{{p.status}}</td>
+                        <td>{{p.cpu_percent}}</td>
+                        <td>{{p.memory_percent}}</td>
+                        <td>{{p.cpu_times.total}}</td>
+                        <td>{{p.cmdline.join(' ')}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -191,7 +212,7 @@
                 </div>
             </div>
         </div>
-        <div ng-show="host.full_status.memory">
+        <div ng-show="host.full_status">
             <div class="ui divider"></div>
             <div class="multi-percent-bar">
                 <div class="inner mem-used" ng-style="{'width': host.full_status.memory.used_percent + '%'}"></div>
@@ -222,6 +243,27 @@
                     </div>
                 </div>
                 <div class="header">Memory Usage</div>
+            </div>
+            <div class="ui divider"></div>
+            <div class="table-responsive">
+                <table class="ui celled unstackable very compact single line sortable table">
+                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th>SHR</th><th>Status</th><th>CPU%</th><th class="sorted descending">Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                    <tbody>
+                    <tr ng-repeat="p in host.full_status.memory.top_processes">
+                        <td>{{p.pid}}</td>
+                        <td>{{p.ppid}}</td>
+                        <td>{{p.username}}</td>
+                        <td>{{p.memory_info.vms_h}}</td>
+                        <td>{{p.memory_info.rss_h}}</td>
+                        <td>{{p.memory_info.shared_h}}</td>
+                        <td>{{p.status}}</td>
+                        <td>{{p.cpu_percent}}</td>
+                        <td>{{p.memory_percent}}</td>
+                        <td>{{p.cpu_times.total}}</td>
+                        <td>{{p.cmdline.join(' ')}}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -297,7 +339,7 @@
             </div>
         </div>
     </div>
-    <div class="ui stackable doubling four column grid" ng-show="host.info.gpu">
+    <div class="ui stackable two column grid" ng-show="host.info.gpu">
         <div class="column" ng-repeat="gpu in host.info.gpu.devices">
             <div class="ui fluid card">
                 <div class="content">
@@ -309,110 +351,131 @@
                     </div>
                 </div>
                 <div class="content">
-                    <div>
-                        <i class="heartbeat icon"></i>
-                        GPU Utilization
-                        <div class="percent-bar">
-                            <div class="label"><i class="icon"></i></div>
-                            <div class="bar">
-                                <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].utilization.gpu+'%'}"></div>
-                            </div>
-                            <div class="number">{{host.status.gpu.devices[gpu.index].utilization.gpu}}%</div>
-                        </div>
-                    </div>
-                    <div>
-                        <i class="exchange icon"></i>
-                        Memory Bandwidth Utilization
-                        <div class="percent-bar">
-                            <div class="label"><i class="icon"></i></div>
-                            <div class="bar">
-                                <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].utilization.memory+'%'}"></div>
-                            </div>
-                            <div class="number">{{host.status.gpu.devices[gpu.index].utilization.memory}}%</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="content">
-                    <div>
-                        <i class="microchip icon"></i>
-                        Memory Utilization
-                        <div class="percent-bar">
-                            <div class="label"><i class="icon"></i></div>
-                            <div class="bar">
-                                <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].memory.percent+'%'}"></div>
-                            </div>
-                            <div class="number">{{host.status.gpu.devices[gpu.index].memory.percent}}%</div>
-                        </div>
-                        <div class="legend">
-                            <div class="items">
-                                <div class="item">
-                                    <i class="color-block disk-used"></i>
-                                    <span class="header">Used</span>
-                                    {{host.full_status.gpu.devices[gpu.index].memory.used_h}}
-                                </div>
-                                <div class="item">
-                                    <i class="color-block"></i>
-                                    <span class="header">Free</span>
-                                    {{host.full_status.gpu.devices[gpu.index].memory.free_h}}
+                    <div class="ui two column grid">
+                        <div class="column">
+                            <div>
+                                <i class="heartbeat icon"></i>
+                                GPU Utilization
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].utilization.gpu+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.status.gpu.devices[gpu.index].utilization.gpu}}%</div>
                                 </div>
                             </div>
+                            <div>
+                                <i class="exchange icon"></i>
+                                Memory Bandwidth Utilization
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].utilization.memory+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.status.gpu.devices[gpu.index].utilization.memory}}%</div>
+                                </div>
+                            </div>
+                            <div>
+                                <i class="microchip icon"></i>
+                                Memory Utilization
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].memory.percent+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.status.gpu.devices[gpu.index].memory.percent}}%</div>
+                                </div>
+                                <div class="legend">
+                                    <div class="items">
+                                        <div class="item">
+                                            <i class="color-block disk-used"></i>
+                                            <span class="header">Used</span>
+                                            {{host.full_status.gpu.devices[gpu.index].memory.used_h}}
+                                        </div>
+                                        <div class="item">
+                                            <i class="color-block"></i>
+                                            <span class="header">Free</span>
+                                            {{host.full_status.gpu.devices[gpu.index].memory.free_h}}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="centered-text">
+                                    <b>Total</b> {{gpu.memory.total_h}}
+                                </div>
+                            </div>
                         </div>
-                        <div class="centered-text">
-                            <b>Total</b> {{gpu.memory.total_h}}
+                        <div class="column">
+                            <div class="ui active inverted dimmer" ng-class="{'active': !host.full_status}">
+                                <div class="ui loader"></div>
+                            </div>
+                            <div ng-show="host.full_status.gpu.devices[gpu.index].fan_speed!==undefined">
+                                <i class="asterisk icon"></i>
+                                Fan Speed
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner-secondary" ng-style="{'width': host.full_status.gpu.devices[gpu.index].fan_speed+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.full_status.gpu.devices[gpu.index].fan_speed}}%</div>
+                                </div>
+                            </div>
+                            <div ng-show="host.full_status.gpu.devices[gpu.index].temperature!==undefined">
+                                <i class="thermometer icon"></i>
+                                Temperature
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner-secondary" ng-style="{'width': host.full_status.gpu.devices[gpu.index].temperature+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.full_status.gpu.devices[gpu.index].temperature}}&deg;C</div>
+                                </div>
+                            </div>
+                            <div ng-show="host.full_status.gpu.devices[gpu.index].power">
+                                <i class="bolt icon"></i>
+                                Power Usage ({{host.full_status.gpu.devices[gpu.index].power.usage_h}} / {{host.full_status.gpu.devices[gpu.index].power.limit_h}})
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner-secondary" ng-style="{'width': host.full_status.gpu.devices[gpu.index].power.percent+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.full_status.gpu.devices[gpu.index].power.percent}}%</div>
+                                </div>
+                            </div>
+                            <div ng-show="host.full_status.gpu.devices[gpu.index].performance!==undefined">
+                                <i class="signal icon"></i>
+                                Performance State
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner-secondary" ng-style="{'width': host.full_status.gpu.devices[gpu.index].performance_percent+'%'}"></div>
+                                    </div>
+                                    <div class="number">St.{{host.full_status.gpu.devices[gpu.index].performance}}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="content" ng-show="host.full_status.gpu.devices[gpu.index].fan_speed!==undefined || host.full_status.gpu.devices[gpu.index].temperature!==undefined">
-                    <div ng-show="host.full_status.gpu.devices[gpu.index].fan_speed!==undefined">
-                        <i class="asterisk icon"></i>
-                        Fan Speed
-                        <div class="percent-bar">
-                            <div class="label"><i class="icon"></i></div>
-                            <div class="bar">
-                                <div class="inner" ng-style="{'width': host.full_status.gpu.devices[gpu.index].fan_speed+'%'}"></div>
-                            </div>
-                            <div class="number">{{host.full_status.gpu.devices[gpu.index].fan_speed}}%</div>
-                        </div>
-                    </div>
-                    <div ng-show="host.full_status.gpu.devices[gpu.index].temperature!==undefined">
-                        <i class="thermometer icon"></i>
-                        Temperature
-                        <div class="percent-bar">
-                            <div class="label"><i class="icon"></i></div>
-                            <div class="bar">
-                                <div class="inner" ng-style="{'width': host.full_status.gpu.devices[gpu.index].temperature+'%'}"></div>
-                            </div>
-                            <div class="number">{{host.full_status.gpu.devices[gpu.index].temperature}}&deg;C</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="content" ng-show="host.full_status.gpu.devices[gpu.index].power || host.full_status.gpu.devices[gpu.index].performance!==undefined">
-                    <div ng-show="host.full_status.gpu.devices[gpu.index].power">
-                        <i class="bolt icon"></i>
-                        Power Usage
-                        <div class="percent-bar">
-                            <div class="label"><i class="icon"></i></div>
-                            <div class="bar">
-                                <div class="inner" ng-style="{'width': host.full_status.gpu.devices[gpu.index].power.percent+'%'}"></div>
-                            </div>
-                            <div class="number">{{host.full_status.gpu.devices[gpu.index].power.percent}}%</div>
-                        </div>
-                        <div class="centered-text">
-                            Current: {{host.full_status.gpu.devices[gpu.index].power.usage_h}} &nbsp; Limit: {{host.full_status.gpu.devices[gpu.index].power.limit_h}}
-                        </div>
-                    </div>
-                    <div ng-show="host.full_status.gpu.devices[gpu.index].performance!==undefined">
-                        <i class="signal icon"></i>
-                        Performance State
-                        <div class="percent-bar">
-                            <div class="label"><i class="icon"></i></div>
-                            <div class="bar">
-                                <div class="inner" ng-style="{'width': host.full_status.gpu.devices[gpu.index].performance_percent+'%'}"></div>
-                            </div>
-                            <div class="number">St.{{host.full_status.gpu.devices[gpu.index].performance}}</div>
-                        </div>
-                        <div class="centered-text">
-                            Minimum: St.15 &nbsp; Maximum: St.0
+                    <div ng-show="host.full_status.gpu.devices[gpu.index].process_list.length > 0">
+                        <div class="ui divider"></div>
+                        <div class="table-responsive">
+                            <table class="ui celled unstackable very compact single line sortable table">
+                                <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th>SHR</th><th class="sorted descending">GPU Mem</th><th>Status</th><th>CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                                <tbody>
+                                <tr ng-repeat="p in host.full_status.gpu.devices[gpu.index].process_list">
+                                    <td>{{p.pid}}</td>
+                                    <td>{{p.ppid}}</td>
+                                    <td>{{p.username}}</td>
+                                    <td>{{p.memory_info.vms_h}}</td>
+                                    <td>{{p.memory_info.rss_h}}</td>
+                                    <td>{{p.memory_info.shared_h}}</td>
+                                    <td>{{p.gpu_memory_h}}</td>
+                                    <td>{{p.status}}</td>
+                                    <td>{{p.cpu_percent}}</td>
+                                    <td>{{p.memory_percent}}</td>
+                                    <td>{{p.cpu_times.total}}</td>
+                                    <td>{{p.cmdline.join(' ')}}</td>
+                                </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -424,7 +487,7 @@
         <div class="content">Active Users</div>
     </div>
     <div class="table-responsive">
-        <table class="ui celled unstackable scrolling table">
+        <table class="ui celled unstackable very compact single line table">
             <thead><tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th><th ng-hide="host.info.platform.system=='Windows'">PID</th></tr></thead>
             <tbody>
             <tr ng-repeat="user in host.full_status.users">

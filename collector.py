@@ -1,5 +1,6 @@
 import platform
 import sys
+import threading
 
 import distro
 import psutil
@@ -13,6 +14,8 @@ _static_info = {
     'public': {},
     'private': {}
 }
+_process_info = {}
+_process_info_lock = threading.Lock()
 
 
 def init():
@@ -282,12 +285,34 @@ def _get_full_status_psutil():
             'percent': round(1000 * (1 - other_partitions_free / other_partitions_total)) / 10
         }
 
+    with _process_info_lock:
+        _process_info.clear()
+        for p in psutil.process_iter(attrs=['pid', 'name', 'username', 'cmdline', 'create_time', 'ppid', 'status',
+                                            'cpu_times', 'cpu_percent', 'cpu_num', 'num_threads',
+                                            'memory_info', 'memory_percent']):
+            info = p.info
+            cpu_time_info = info['cpu_times']
+            mem_info = info['memory_info']
+            info['cpu_times'] = {
+                'total': round(100 * (cpu_time_info.user + cpu_time_info.system)) / 100
+            }
+            info['memory_info'] = {
+                'rss': mem_info.rss,
+                'vms': mem_info.vms,
+                'shared': mem_info.shared
+            }
+            info['memory_percent'] = round(info['memory_percent'] * 10) / 10
+            _process_info[info['pid']] = info
+    top_cpu_processes = sorted(_process_info.values(), key=lambda info: info['cpu_percent'], reverse=True)[:10]
+    top_mem_processes = sorted(_process_info.values(), key=lambda info: info['memory_info']['rss'], reverse=True)[:10]
+
     memory_status = {
         'available': vm.available,
         'used': vm.used,
         'free': vm.free,
         'used_percent': round(1000 * vm.used / vm.total) / 10,
-        'free_percent': round(1000 * vm.free / vm.total) / 10
+        'free_percent': round(1000 * vm.free / vm.total) / 10,
+        'top_processes': top_mem_processes
     }
 
     if platform.system() == 'Linux':
@@ -312,7 +337,8 @@ def _get_full_status_psutil():
         },
         'full': {
             'cpu': {
-                'percents': psutil.cpu_percent(percpu=True)
+                'percents': psutil.cpu_percent(percpu=True),
+                'top_processes': top_cpu_processes
             },
             'memory': memory_status,
             'swap': {
@@ -367,12 +393,19 @@ def _get_full_status_nvml():
             },
             'processes': len(process_info)
         })
+        with _process_info_lock:
+            process_list = []
+            for p in process_info:
+                info = _process_info[p.pid]
+                info['gpu_memory'] = p.usedGpuMemory
+                process_list.append(info)
+        process_list.sort(key=lambda i: i['gpu_memory'], reverse=True)
         full_status = {
             'memory': {
                 'free': mem_info.free,
                 'used': mem_info.used
             },
-            'process_list': [{'pid': p.pid, 'memory': p.usedGpuMemory} for p in process_info]
+            'process_list': process_list
         }
         try:
             full_status['fan_speed'] = pynvml.nvmlDeviceGetFanSpeed(handle)

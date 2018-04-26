@@ -7,7 +7,7 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
       templateUrl: 'static/ui/home.html?t=1804191'
       controller: 'HomeController'
     .when '/hosts/:hid',
-      templateUrl: 'static/ui/host.html?t=1804241'
+      templateUrl: 'static/ui/host.html?t=1804261'
       controller: 'HostController'
     .otherwise
       templateUrl: 'static/ui/404.html'
@@ -119,6 +119,10 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       part.percent_level = percent_level(part.percent)
     for user in status.users
       user.started_h = moment.unix(user.started).toNow()
+    for proc in status.cpu.top_processes
+      process_proccess_info(proc)
+    for proc in status.memory.top_processes
+      process_proccess_info(proc)
     if status.gpu
       for gpu in status.gpu.devices
         gpu.memory.free_h = human_size(gpu.memory.free)
@@ -129,7 +133,16 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
           gpu.power.percent = Math.round(gpu.power.usage/gpu.power.limit*100)
         if gpu.performance != undefined
           gpu.performance_percent = gpu.performance * (-100/15) + 100
+        for proc in gpu.process_list
+          process_proccess_info(proc)
     return status
+
+  process_proccess_info = (info)->
+    info.memory_info.rss_h = human_size(info.memory_info.rss)
+    info.memory_info.vms_h = human_size(info.memory_info.vms)
+    info.memory_info.shared_h = human_size(info.memory_info.shared)
+    if info.gpu_memory != undefined
+      info.gpu_memory_h = human_size(info.gpu_memory)
 
   handle_update_result_message = (host, message)->
     host.update_result = message
