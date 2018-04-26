@@ -64,19 +64,13 @@ def get_full_status():
     return status
 
 
-def _get_package_info():
-    info = None
+def _update_package_info():
     try:
-        info = {
+        _static_info['public']['package'] = {
             "label": repository.get_head()
         }
     except Exception as e:
         print('[Warning] Failed to get the package information: %s' % str(e))
-    return info
-
-
-def _update_package_info():
-    _static_info['public']['package'] = _get_package_info()
 
 
 def _update_platform_info():
