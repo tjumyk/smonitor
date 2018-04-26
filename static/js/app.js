@@ -213,6 +213,11 @@
           time = ref[key];
           info.cpu_times[key + '_h'] = format_cpu_time(time);
         }
+        if (info.cmdline.length > 0) {
+          info.cmdline_h = info.cmdline.join(' ').trim();
+        } else {
+          info.cmdline_h = "[" + info.name + "]";
+        }
         info.memory_info.rss_h = human_size(info.memory_info.rss);
         info.memory_info.vms_h = human_size(info.memory_info.vms);
         info.memory_info.shared_h = human_size(info.memory_info.shared);
