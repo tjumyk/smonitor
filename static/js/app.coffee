@@ -140,13 +140,14 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
   process_proccess_info = (info)->
     for key, time of info.cpu_times
       info.cpu_times[key+'_h'] = format_cpu_time(time)
-    if info.cmdline.length > 0
+    if info.cmdline and info.cmdline.length > 0
       info.cmdline_h = info.cmdline.join(' ').trim()
     else
       info.cmdline_h = "[#{info.name}]"
     info.memory_info.rss_h = human_size(info.memory_info.rss)
     info.memory_info.vms_h = human_size(info.memory_info.vms)
-    info.memory_info.shared_h = human_size(info.memory_info.shared)
+    if info.memory_info.shared != undefined
+      info.memory_info.shared_h = human_size(info.memory_info.shared)
     if info.gpu_memory != undefined
       info.gpu_memory_h = human_size(info.gpu_memory)
 

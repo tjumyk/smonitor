@@ -143,7 +143,7 @@
             <div class="ui divider"></div>
             <div class="table-responsive">
                 <table class="ui celled unstackable very compact single line sortable table">
-                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th>SHR</th><th>Status</th><th class="sorted descending">CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th>Status</th><th class="sorted descending">CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
                     <tbody>
                     <tr ng-repeat="p in host.full_status.cpu.top_processes">
                         <td>{{p.pid}}</td>
@@ -151,7 +151,7 @@
                         <td>{{p.username}}</td>
                         <td>{{p.memory_info.vms_h}}</td>
                         <td>{{p.memory_info.rss_h}}</td>
-                        <td>{{p.memory_info.shared_h}}</td>
+                        <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
                         <td>{{p.status}}</td>
                         <td>{{p.cpu_percent}}</td>
                         <td>{{p.memory_percent}}</td>
@@ -247,7 +247,7 @@
             <div class="ui divider"></div>
             <div class="table-responsive">
                 <table class="ui celled unstackable very compact single line sortable table">
-                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th>SHR</th><th>Status</th><th>CPU%</th><th class="sorted descending">Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th>Status</th><th>CPU%</th><th class="sorted descending">Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
                     <tbody>
                     <tr ng-repeat="p in host.full_status.memory.top_processes">
                         <td>{{p.pid}}</td>
@@ -255,7 +255,7 @@
                         <td>{{p.username}}</td>
                         <td>{{p.memory_info.vms_h}}</td>
                         <td>{{p.memory_info.rss_h}}</td>
-                        <td>{{p.memory_info.shared_h}}</td>
+                        <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
                         <td>{{p.status}}</td>
                         <td>{{p.cpu_percent}}</td>
                         <td>{{p.memory_percent}}</td>
@@ -458,7 +458,7 @@
                         <div class="ui divider"></div>
                         <div class="table-responsive">
                             <table class="ui celled unstackable very compact single line sortable table">
-                                <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th>SHR</th><th class="sorted descending">GPU Mem</th><th>Status</th><th>CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                                <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th class="sorted descending">GPU Mem</th><th>Status</th><th>CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
                                 <tbody>
                                 <tr ng-repeat="p in host.full_status.gpu.devices[gpu.index].process_list">
                                     <td>{{p.pid}}</td>
@@ -466,7 +466,7 @@
                                     <td>{{p.username}}</td>
                                     <td>{{p.memory_info.vms_h}}</td>
                                     <td>{{p.memory_info.rss_h}}</td>
-                                    <td>{{p.memory_info.shared_h}}</td>
+                                    <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
                                     <td>{{p.gpu_memory_h}}</td>
                                     <td>{{p.status}}</td>
                                     <td>{{p.cpu_percent}}</td>
