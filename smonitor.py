@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 import time
 
@@ -13,9 +14,17 @@ import repository
 
 monkey.patch_all()
 
+config = None
+if os.path.isfile('config.json'):
+    with open('config.json') as f_config:
+        config = json.load(f_config)
+else:
+    print('Configuration file "config.json" was not found. Please create it and put it in the current working '
+          'directory.\nIn the root folder of this repository, "config_app.json" is an example configuration for '
+          'an app server and "config_node.json" is an example configuration for a node server.')
+    exit(1)
+
 app = Flask(__name__)
-with open('config.json') as f_config:
-    config = json.load(f_config)
 app.config['SECRET_KEY'] = config['server']['secret']
 socket_io = SocketIO(app, async_mode='gevent')
 
