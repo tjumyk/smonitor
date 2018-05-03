@@ -2,7 +2,7 @@
   "server": {
     "host": "0.0.0.0",
     "port": 8999,
-    "secret": "b3YM5tT3yPutFgch79zx9Pup"
+    "secret": "ChangeThis"
   },
   "manager": {
     "host": "localhost",
@@ -11,14 +11,14 @@
   },
   "monitor": {
     "mode": "app",
-    "site_name": "UNSW KG Servers",
+    "site_name": "My Clusters",
     "interval": 3,
     "host_groups": [
       {
-        "name": "Central Server",
+        "name": "Web Server",
         "hosts": [
           {
-            "name": "kg",
+            "name": "web",
             "address": "localhost"
           }
         ]
@@ -27,37 +27,37 @@
         "name": "GPU Computing",
         "hosts": [
           {
-            "name": "pangu",
-            "address": "pangu.cse.unsw.edu.au"
+            "name": "gpu1",
+            "address": "gpu1.internal.com"
+          },
+          {
+            "name": "gpu2",
+            "address": "gpu2.internal.com"
           }
         ]
       },
       {
-        "name": "Nectar Cloud",
+        "name": "Private Cloud",
         "hosts": [
           {
-            "name": "kongzi0",
-            "address": "43.240.97.125"
+            "name": "db1",
+            "address": "db1.internal.com"
           },
           {
-            "name": "kongzi1",
-            "address": "43.240.97.126"
+            "name": "db2",
+            "address": "db2.internal.com"
           },
           {
-            "name": "kongzi2",
-            "address": "43.240.99.122"
+            "name": "mail",
+            "address": "mail.internal.com"
           },
           {
-            "name": "kongzi3",
-            "address": "43.240.96.216"
+            "name": "static",
+            "address": "static.internal.com"
           },
           {
-            "name": "kongzi4",
-            "address": "43.240.96.221"
-          },
-          {
-            "name": "kongzi5",
-            "address": "43.240.97.73"
+            "name": "process",
+            "address": "proc.internal.com"
           }
         ]
       }

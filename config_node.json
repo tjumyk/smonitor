@@ -2,7 +2,7 @@
   "server": {
     "host": "0.0.0.0",
     "port": 8999,
-    "secret": "b3YM5tT3yPutFgch79zx9Pup"
+    "secret": "ChangeThis"
   },
   "manager": {
     "host": "localhost",
@@ -11,7 +11,7 @@
   },
   "monitor": {
     "mode": "node",
-    "site_name": "UNSW KG Servers",
+    "site_name": "My Host",
     "interval": 3
   }
 }
