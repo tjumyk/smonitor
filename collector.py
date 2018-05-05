@@ -112,6 +112,8 @@ def _update_psutil_static_info():
     for part in psutil.disk_partitions():
         if 'cdrom' in part.opts.split(','):  # skip CD-ROMs (but possibly a bug in psutil)
             continue
+        if part.device.startswith('/dev/loop'):  # skip loop devices
+            continue
         device = partitions.get(part.device)
         if device is None:
             device = {
