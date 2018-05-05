@@ -9,18 +9,21 @@
         </h1>
     </div>
     <div class="ui breadcrumb">
-        <a class="section" href="#!/">All Servers</a>
+        <a class="section" href="#!/"><i class="ui home icon"></i></a>
         <i class="right angle icon divider"></i>
         <div class="section">
             <div class="ui simple dropdown">
-                <div class="text">{{host_group.name}}</div>
+                <div class="text"><i class="ui server icon" style="margin-right: .25rem;"></i>{{host_group.name}}</div>
                 <div class="menu">
-                    <a class="item" ng-repeat="h in host_group.hosts" ng-href="#!/hosts/{{h.name}}">{{h.name}}</a>
+                    <a class="item" ng-repeat="h in host_group.hosts" ng-href="#!/hosts/{{h.name}}">
+                        <i class="ui desktop icon"></i>
+                        {{h.name}}
+                    </a>
                 </div>
             </div>
         </div>
         <i class="right angle icon divider"></i>
-        <div class="active section">{{host.name}}</div>
+        <div class="active section"><i class="ui desktop icon"></i>{{host.name}}</div>
     </div>
     <div ng-show="host.info.error || host.status.error || host.full_status.error" class="ui negative message">
         <div class="header">
