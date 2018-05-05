@@ -1,11 +1,13 @@
 <div class="ui container">
-    <h1 class="ui center aligned header">
-        <img class="ui image" src="static/image/logo.svg">
-        <div class="content">
-            {{config.site_name}}
-            <div class="sub header">System Monitor <span ng-show="config && config.mode!='app'">(Mode: {{config.mode}})</span></div>
-        </div>
-    </h1>
+    <div class="app-header">
+        <h1 class="ui center aligned header">
+            <img class="ui image" src="static/image/logo.svg">
+            <div class="content">
+                {{config.site_name}}
+                <div class="sub header">System Monitor <span ng-show="config && config.mode!='app'">(Mode: {{config.mode}})</span></div>
+            </div>
+        </h1>
+    </div>
     <div class="ui breadcrumb">
         <a class="section" href="#!/">All Servers</a>
         <i class="right angle icon divider"></i>
