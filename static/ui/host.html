@@ -357,7 +357,7 @@
                 </div>
                 <div class="content">
                     <div class="ui two column grid">
-                        <div class="column">
+                        <div class="column" ng-hide="host.status.gpu.devices[gpu.index].utilization.gpu==0 && host.status.gpu.devices[gpu.index].utilization.memory==0 && host.full_status.gpu.devices[gpu.index].memory.used==0">
                             <div>
                                 <i class="heartbeat icon"></i>
                                 GPU Utilization
@@ -406,6 +406,18 @@
                                 </div>
                                 <div class="centered-text">
                                     <b>Total</b> {{gpu.memory.total_h}}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column" ng-show="host.status.gpu.devices[gpu.index].utilization.gpu==0 && host.status.gpu.devices[gpu.index].utilization.memory==0 && host.full_status.gpu.devices[gpu.index].memory.used==0">
+                            <div class="vertical-center">
+                                <div class="inner">
+                                    <h3 class="ui center aligned icon header">
+                                        <i class="disabled circular coffee icon"></i>
+                                        <div class="content">
+                                            <div class="muted-text">Idle</div>
+                                        </div>
+                                    </h3>
                                 </div>
                             </div>
                         </div>

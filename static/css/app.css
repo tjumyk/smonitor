@@ -217,4 +217,7 @@ body,
   padding-top: 0;
   padding-bottom: 0;
 }
+.muted-text {
+  opacity: .45!important;
+}
 /*# sourceMappingURL=app.css.map */
