@@ -119,16 +119,12 @@ body,
   margin: 0.9em 0.25rem;
 }
 .percent-bar {
-  display: -webkit-box;
-  display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
 }
 .percent-bar .bar {
-  -webkit-box-flex: 1;
-  -webkit-flex: 1;
-      -ms-flex: 1;
-          flex: 1;
+  -ms-flex: 1;
+      flex: 1;
 }
 .percent-bar .label {
   margin-right: .4em;
@@ -156,7 +152,6 @@ body,
   height: 100%;
   border: 1px solid transparent;
   width: 0;
-  -webkit-transition: width 0.5s ease-out, left 0.5s ease-out;
   transition: width 0.5s ease-out, left 0.5s ease-out;
 }
 .percent-bar > .bar .inner,
@@ -213,5 +208,13 @@ body,
 }
 .centered-text {
   text-align: center;
+}
+.grid.cpu-bars {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.grid.cpu-bars > .column:not(.row) {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 /*# sourceMappingURL=app.css.map */

@@ -134,10 +134,10 @@
         </div>
         <div ng-show="host.full_status">
             <div class="ui divider"></div>
-            <div class="ui doubling four column grid">
+            <div class="ui doubling four column grid cpu-bars">
                 <div ng-repeat="p in host.full_status.cpu.percents track by $index" class="column">
                     <div class="percent-bar">
-                        <div class="label">CPU {{$index}}</div>
+                        <div class="label">CPU <span ng-show="$index<10 && host.full_status.cpu.percents.length>10">0</span>{{$index}}</div>
                         <div class="bar">
                             <div class="inner" ng-style="{'width': p+'%'}"></div>
                         </div>
