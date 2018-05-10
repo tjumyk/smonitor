@@ -141,7 +141,8 @@ body,
 }
 .percent-bar > .bar,
 .multi-percent-bar {
-  border: 1px solid #e6e6e6;
+  background-color: #eee;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset;
   position: relative;
   height: 1em;
   margin-top: 0.2em;
@@ -190,7 +191,7 @@ body,
   display: inline-block;
   width: 1em;
   height: 1em;
-  border: 1px solid #e6e6e6;
+  background-color: #eee;
 }
 .legend .color-block.mem-used,
 .legend .color-block.disk-used {

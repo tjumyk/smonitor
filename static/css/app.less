@@ -3,7 +3,9 @@
 @color-danger: #db2828 !important;
 @progress-color: @color-success;
 @progress-color-secondary: #00b5ad;
-@progress-border-color: #e6e6e6;
+//@progress-border-radius: 0;
+@progress-background-color: #eee;
+@progress-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset;
 
 @metric-margin: 0.25rem;
 
@@ -159,7 +161,9 @@ html, body, .vertical-center {
 }
 
 .percent-bar > .bar, .multi-percent-bar {
-  border: 1px solid @progress-border-color;
+  background-color: @progress-background-color;
+  //border-radius: @progress-border-radius;
+  box-shadow: @progress-box-shadow;
   position: relative;
   height: 1em;
   margin-top: 0.2em;
@@ -170,6 +174,7 @@ html, body, .vertical-center {
     left: 0;
     height: 100%;
     width: 0;
+    //border-radius: @progress-border-radius;
     transition: width 0.5s ease-out, left 0.5s ease-out;
   }
   .inner{
@@ -181,6 +186,13 @@ html, body, .vertical-center {
 }
 
 .multi-percent-bar .inner {
+  //border-radius: 0;
+  //&:first-child{
+  //  border-radius: @progress-border-radius 0 0 @progress-border-radius;
+  //}
+  //&:last-child{
+  //  border-radius: 0 @progress-border-radius @progress-border-radius 0;
+  //}
   &.mem-buffers {
     background-color: lighten(@progress-color, 20%);
   }
@@ -204,7 +216,8 @@ html, body, .vertical-center {
         display: inline-block;
         width: 1em;
         height: 1em;
-        border: 1px solid @progress-border-color;
+        //border-radius: @progress-border-radius;
+        background-color: @progress-background-color;
       }
     }
   }
