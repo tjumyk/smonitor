@@ -7,7 +7,7 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
       templateUrl: 'static/ui/home.html?t=1804191'
       controller: 'HomeController'
     .when '/hosts/:hid',
-      templateUrl: 'static/ui/host.html?t=1805102'
+      templateUrl: 'static/ui/host.html?t=1805103'
       controller: 'HostController'
     .otherwise
       templateUrl: 'static/ui/404.html'
