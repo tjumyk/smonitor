@@ -12,18 +12,32 @@
         <a class="section" href="#!/"><i class="ui home icon"></i></a>
         <i class="right angle icon divider"></i>
         <div class="section">
-            <div class="ui simple dropdown">
-                <div class="text"><i class="ui server icon" style="margin-right: .25rem;"></i>{{host_group.name}}</div>
+            <div class="ui pointing host-switch dropdown">
+                <div class="text"><i class="ui server icon"></i>{{host_group.name}}</div>
                 <div class="menu">
-                    <a class="item" ng-repeat="h in host_group.hosts" ng-href="#!/hosts/{{h.name}}">
-                        <i class="ui desktop icon"></i>
-                        {{h.name}}
-                    </a>
+                    <div class="dropdown item" ng-repeat="g in config.host_groups" ng-class="{'active': g==host_group}">
+                        <i class="dropdown icon"></i>
+                        <i class="ui server icon"></i> {{g.name}}
+                        <div class="menu">
+                            <a class="item" ng-repeat="h in g.hosts" ng-class="{'active': h==host}" ng-href="#!/hosts/{{h.name}}">
+                                <i class="ui desktop icon"></i> {{h.name}}
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         <i class="right angle icon divider"></i>
-        <div class="active section"><i class="ui desktop icon"></i>{{host.name}}</div>
+        <div class="section">
+            <div class="ui pointing host-switch dropdown">
+                <div class="text"><i class="ui desktop icon"></i>{{host.name}}</div>
+                <div class="menu">
+                    <a class="item" ng-repeat="h in host_group.hosts" ng-class="{'active': h==host}" ng-href="#!/hosts/{{h.name}}">
+                        <i class="ui desktop icon"></i> {{h.name}}
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
     <div ng-show="host.info.error || host.status.error || host.full_status.error" class="ui negative message">
         <div class="header">

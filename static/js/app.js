@@ -457,6 +457,9 @@
           $location.path('/404').replace();
           return;
         }
+        $timeout(function() {
+          return $('.host-switch').dropdown();
+        });
         socket.emit('enable_full_status', host_id);
         return socket.on('reconnect', re_enable_full_status);
       });

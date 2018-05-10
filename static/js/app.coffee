@@ -294,6 +294,8 @@ app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams',
     if !$scope.host
       $location.path('/404').replace()
       return
+    $timeout ->
+      $('.host-switch').dropdown()
     socket.emit('enable_full_status', host_id)
     socket.on('reconnect', re_enable_full_status)
 
