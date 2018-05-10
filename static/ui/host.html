@@ -20,7 +20,13 @@
                         <i class="ui server icon"></i> {{g.name}}
                         <div class="menu">
                             <a class="item" ng-repeat="h in g.hosts" ng-class="{'active': h==host}" ng-href="#!/hosts/{{h.name}}">
-                                <i class="ui desktop icon"></i> {{h.name}}
+                                <i class="ui desktop icon"></i>
+                                <div class="percent-bar inline">
+                                    <div class="label">{{h.name}}</div>
+                                    <div class="bar">
+                                        <div class="inner" ng-style="{'width': h.status.cpu.percent+'%'}"></div>
+                                    </div>
+                                </div>
                             </a>
                         </div>
                     </div>
@@ -33,7 +39,13 @@
                 <div class="text"><i class="ui desktop icon"></i>{{host.name}}</div>
                 <div class="menu">
                     <a class="item" ng-repeat="h in host_group.hosts" ng-class="{'active': h==host}" ng-href="#!/hosts/{{h.name}}">
-                        <i class="ui desktop icon"></i> {{h.name}}
+                        <i class="ui desktop icon"></i>
+                        <div class="percent-bar inline">
+                            <div class="label">{{h.name}}</div>
+                            <div class="bar">
+                                <div class="inner" ng-style="{'width': h.status.cpu.percent+'%'}"></div>
+                            </div>
+                        </div>
                     </a>
                 </div>
             </div>

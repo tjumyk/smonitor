@@ -153,6 +153,9 @@ html, body, .vertical-center {
     margin-left: .4em;
     text-align: right;
   }
+  &.inline{
+    display: inline-flex;
+  }
 }
 
 .percent-bar > .bar, .multi-percent-bar {
@@ -243,4 +246,10 @@ html, body, .vertical-center {
 }
 .muted-text{
   opacity: .45!important;
+}
+
+.host-switch{
+  .percent-bar.inline > .bar{
+    width: 40px;
+  }
 }

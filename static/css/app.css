@@ -135,6 +135,10 @@ body,
   margin-left: .4em;
   text-align: right;
 }
+.percent-bar.inline {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+}
 .percent-bar > .bar,
 .multi-percent-bar {
   border: 1px solid #e6e6e6;
@@ -219,5 +223,8 @@ body,
 }
 .muted-text {
   opacity: .45!important;
+}
+.host-switch .percent-bar.inline > .bar {
+  width: 40px;
 }
 /*# sourceMappingURL=app.css.map */
