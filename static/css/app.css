@@ -150,17 +150,16 @@ body,
   top: 0;
   left: 0;
   height: 100%;
-  border: 1px solid transparent;
   width: 0;
   transition: width 0.5s ease-out, left 0.5s ease-out;
 }
 .percent-bar > .bar .inner,
 .multi-percent-bar .inner {
-  background: #21ba45 !important;
+  background-color: #21ba45 !important;
 }
 .percent-bar > .bar .inner-secondary,
 .multi-percent-bar .inner-secondary {
-  background: #00b5ad;
+  background-color: #00b5ad;
 }
 .multi-percent-bar .inner.mem-buffers {
   background-color: #5ee37e !important;
