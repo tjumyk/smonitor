@@ -22,7 +22,7 @@
   app.directive('appFooter', function() {
     return {
       restrict: 'A',
-      templateUrl: 'static/ui/footer.html'
+      templateUrl: 'static/ui/footer.html?t=1805111'
     };
   });
 
@@ -322,6 +322,25 @@
           return $('.reconnect.dimmer').dimmer({
             'closable': false
           }).dimmer('set page dimmer', true).dimmer('show');
+        });
+        socket.on('clients', function(clients) {
+          var client, id, total, ua, ua_str;
+          $scope.clients = clients;
+          total = 0;
+          for (id in clients) {
+            client = clients[id];
+            ua_str = client.user_agent;
+            if (ua_str) {
+              ua = new UAParser(ua_str);
+              client.browser = ua.getBrowser();
+              client.device = ua.getDevice();
+              client.engine = ua.getEngine();
+              client.os = ua.getOS();
+              client.cpu = ua.getCPU();
+            }
+            ++total;
+          }
+          return $scope.clients_total = total;
         });
         if (config.mode === 'app') {
           host_map = {};

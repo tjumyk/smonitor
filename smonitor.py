@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 import threading
 import time
 
@@ -33,7 +34,7 @@ adapter = HTTPAdapter(pool_maxsize=100)
 session.mount('http://', adapter)
 session.mount('https://', adapter)
 
-clients = 0
+clients = {}
 clients_lock = threading.Lock()
 worker_thread = None
 worker_thread_lock = threading.Lock()
@@ -94,10 +95,18 @@ def self_update():
 
 @socket_io.on('connect')
 def socket_connect():
-    global clients, worker_thread
+    global worker_thread
     with clients_lock:
-        clients += 1
-        print('[Socket Connected] ID=%s, total clients: %d' % (request.sid, clients))
+        sid = request.sid
+        new_client = {
+            'short_id': sid[-6:],
+            'address': request.remote_addr,
+            'hostname': None,
+            'user': request.remote_user,
+            'user_agent': request.headers.get('User-Agent')
+        }
+        clients[sid] = new_client
+        print('[Socket Connected] ID=%s, total clients: %d' % (sid, len(clients)))
         with worker_thread_lock:
             if worker_thread is None:
                 worker_thread = socket_io.start_background_task(target=_status_worker)
@@ -105,14 +114,22 @@ def socket_connect():
         emit('info', host_info)
     else:
         emit('info', collector.get_static_info())
+    try:
+        new_client['hostname'] = socket.gethostbyaddr(new_client['address'])[0]
+    except socket.herror:
+        pass
+    socket_io.emit('clients', clients)
 
 
 @socket_io.on('disconnect')
 def socket_disconnect():
-    global clients
     with clients_lock:
-        clients -= 1
-        print('[Socket Disconnected] ID=%s, total clients: %d' % (request.sid, clients))
+        sid = request.sid
+        if sid in clients:
+            del clients[sid]
+        if clients:
+            socket_io.emit('clients', clients)
+        print('[Socket Disconnected] ID=%s, total clients: %d' % (sid, len(clients)))
 
 
 @socket_io.on('enable_full_status')

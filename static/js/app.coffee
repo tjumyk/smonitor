@@ -15,7 +15,7 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
 
 app.directive 'appFooter', ->
   restrict: 'A'
-  templateUrl: 'static/ui/footer.html'
+  templateUrl: 'static/ui/footer.html?t=1805111'
 
 human_size = (size)->
   units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -217,6 +217,20 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       $('.reconnect.dimmer').dimmer({
         'closable': false
       }).dimmer('set page dimmer', true).dimmer('show')
+    socket.on 'clients', (clients)->
+      $scope.clients = clients
+      total = 0
+      for id, client of clients
+        ua_str = client.user_agent
+        if ua_str
+          ua = new UAParser(ua_str)
+          client.browser = ua.getBrowser()
+          client.device = ua.getDevice()
+          client.engine = ua.getEngine()
+          client.os = ua.getOS()
+          client.cpu = ua.getCPU()
+        ++total
+      $scope.clients_total = total
 
     if config.mode == 'app'
       host_map = {}

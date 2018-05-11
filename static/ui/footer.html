@@ -3,8 +3,27 @@
         <div class="ui text loader">Reconnecting...</div>
     </div>
 </div>
-<div class="ui horizontal list">
-    <div class="item">Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a></div>
-    <div class="item" ng-show="socket">Server Ping: <span ng-hide="ping!=undefined">Unknown</span><span ng-show="ping!=undefined">{{ping}}ms</span></div>
-    <div class="item" ng-show="config.package">Server Version: {{config.package.label}} <button class="ui mini button" ng-click="server_update()" ng-class="{'loading': server_updating}">Check Update</button></div>
+<div class="app-footer">
+    <div class="ui horizontal list">
+        <div class="item">Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a></div>
+        <div class="item" ng-show="socket">Server Ping: <span ng-hide="ping!=undefined">Unknown</span><span ng-show="ping!=undefined">{{ping}}ms</span></div>
+        <div class="item" ng-show="config.package">Server Version: {{config.package.label}} <button class="ui mini button" ng-click="server_update()" ng-class="{'loading': server_updating}">Check Update</button></div>
+        <div class="item" ng-show="clients">Clients: {{clients_total}} <button class="ui mini button" ng-click="show_client_list=!show_client_list"><span ng-show="show_client_list">Hide</span><span ng-hide="show_client_list">Show</span></button></div>
+    </div>
+</div>
+<div class="table-responsive clients-table" ng-show="show_client_list">
+    <table class="ui celled unstackable very compact single line table">
+        <thead><tr><th>#</th><th>ID</th><th>Address</th><th>Browser</th><th>Engine</th><th>OS</th><th>Device</th></tr></thead>
+        <tbody>
+        <tr ng-repeat="(id, c) in clients">
+            <td>{{$index}}</td>
+            <td ng-attr-title="{{id}}">{{c.short_id}} <span class="ui mini green label" ng-show="socket.id==id">You</span></td>
+            <td ng-bind="c.hostname || c.address"></td>
+            <td>{{c.browser.name}} <span class="ui mini label" ng-show="c.browser.version">{{c.browser.version}}</span></td>
+            <td>{{c.engine.name}} <span class="ui mini label" ng-show="c.engine.version">{{c.engine.version}}</span></td>
+            <td>{{c.os.name}} <span class="ui mini label" ng-show="c.os.version">{{c.os.version}}</span></td>
+            <td>{{c.device.model}} <span class="ui mini label" ng-show="c.device.type">{{c.device.type}}</span> <span class="ui mini label" ng-show="c.device.vendor">{{c.device.vendor}}</span></td>
+        </tr>
+        </tbody>
+    </table>
 </div>
