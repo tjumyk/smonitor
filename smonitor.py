@@ -9,6 +9,7 @@ from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from gevent import monkey
 from requests.adapters import HTTPAdapter
+from werkzeug.contrib.fixers import ProxyFix
 
 import collector
 import repository
@@ -27,6 +28,9 @@ else:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config['server']['secret']
+_behind_proxy = config['server'].get('behind_proxy')
+if _behind_proxy:
+    app.wsgi_app = ProxyFix(app.wsgi_app)
 socket_io = SocketIO(app, async_mode='gevent')
 
 session = requests.session()
@@ -98,9 +102,14 @@ def socket_connect():
     global worker_thread
     with clients_lock:
         sid = request.sid
+        address = None
+        if _behind_proxy:
+            address = request.environ.get('werkzeug.proxy_fix.orig_remote_addr')
+        if address is None:
+            address = request.remote_addr
         new_client = {
             'short_id': sid[-6:],
-            'address': request.remote_addr,
+            'address': address,
             'hostname': None,
             'user': request.remote_user,
             'user_agent': request.headers.get('User-Agent')
