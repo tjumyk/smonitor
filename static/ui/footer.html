@@ -16,9 +16,9 @@
         <thead><tr><th>#</th><th>ID</th><th>Address</th><th>Browser</th><th>Engine</th><th>OS</th><th>Device</th></tr></thead>
         <tbody>
         <tr ng-repeat="(id, c) in clients">
-            <td>{{$index}}</td>
+            <td>{{$index+1}}</td>
             <td ng-attr-title="{{id}}">{{c.short_id}} <span class="ui mini green label" ng-show="socket.id==id">You</span></td>
-            <td ng-bind="c.hostname || c.address"></td>
+            <td ng-attr-title="{{c.address}}" ng-bind="c.hostname || c.address"></td>
             <td>{{c.browser.name}} <span class="ui mini label" ng-show="c.browser.version">{{c.browser.version}}</span></td>
             <td>{{c.engine.name}} <span class="ui mini label" ng-show="c.engine.version">{{c.engine.version}}</span></td>
             <td>{{c.os.name}} <span class="ui mini label" ng-show="c.os.version">{{c.os.version}}</span></td>
