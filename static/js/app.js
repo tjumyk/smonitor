@@ -11,7 +11,7 @@
         templateUrl: 'static/ui/home.html?t=1804191',
         controller: 'HomeController'
       }).when('/hosts/:hid', {
-        templateUrl: 'static/ui/host.html?t=1805112',
+        templateUrl: 'static/ui/host.html?t=1805131',
         controller: 'HostController'
       }).otherwise({
         templateUrl: 'static/ui/404.html'
@@ -279,6 +279,7 @@
         }
         return results;
       };
+      $scope.gpu_memory_idle_threshold = 128 * 1024;
       $scope.server_update = function() {
         $scope.server_updating = true;
         return $http.get('api/self_update').then(function(response) {

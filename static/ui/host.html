@@ -383,7 +383,7 @@
                 </div>
                 <div class="content">
                     <div class="ui two column grid">
-                        <div class="column" ng-hide="host.status.gpu.devices[gpu.index].utilization.gpu==0 && host.status.gpu.devices[gpu.index].utilization.memory==0 && host.full_status.gpu.devices[gpu.index].memory.used==0">
+                        <div class="column" ng-hide="host.status.gpu.devices[gpu.index].utilization.gpu==0 && host.status.gpu.devices[gpu.index].utilization.memory==0 && host.full_status.gpu.devices[gpu.index].memory.used<=gpu_memory_idle_threshold">
                             <div>
                                 <i class="heartbeat icon"></i>
                                 GPU Utilization
@@ -435,7 +435,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="column" ng-show="host.status.gpu.devices[gpu.index].utilization.gpu==0 && host.status.gpu.devices[gpu.index].utilization.memory==0 && host.full_status.gpu.devices[gpu.index].memory.used==0">
+                        <div class="column" ng-show="host.status.gpu.devices[gpu.index].utilization.gpu==0 && host.status.gpu.devices[gpu.index].utilization.memory==0 && host.full_status.gpu.devices[gpu.index].memory.used<=gpu_memory_idle_threshold">
                             <div class="vertical-center">
                                 <div class="inner">
                                     <h3 class="ui center aligned icon header">
