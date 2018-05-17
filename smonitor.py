@@ -122,15 +122,17 @@ def socket_connect():
             address = request.environ.get('HTTP_X_FORWARDED_FOR') or request.environ.get('HTTP_X_REAL_IP')
         if address is None:
             address = request.remote_addr
+        user_agent = request.headers.get('User-Agent')
         new_client = {
             'short_id': sid[-6:],
             'address': address,
             'hostname': None,
             'user': request.remote_user,
-            'user_agent': request.headers.get('User-Agent')
+            'user_agent': user_agent
         }
         clients[sid] = new_client
-        logger.info('[Socket Connected] ID=%s, total clients: %d' % (sid, len(clients)))
+        logger.info('[Socket Connected] ID=%s, IP=%s, UA=%s, TotalClients=%d' %
+                    (sid, address, user_agent, len(clients)))
         with worker_thread_lock:
             if worker_thread is None:
                 worker_thread = socket_io.start_background_task(target=_status_worker)
@@ -153,7 +155,7 @@ def socket_disconnect():
             del clients[sid]
         if clients:
             socket_io.emit('clients', clients)
-        logger.info('[Socket Disconnected] ID=%s, total clients: %d' % (sid, len(clients)))
+        logger.info('[Socket Disconnected] ID=%s, TotalClients=%d' % (sid, len(clients)))
 
 
 @socket_io.on('enable_full_status')
@@ -162,7 +164,7 @@ def socket_enable_full_status(host):
     if config['monitor']['mode'] == 'app':
         join_room(host)
         subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
-        logger.info('[Subscribe Full Status] ID=%s host: %s, total subscribers: %d' % (request.sid, host, subscribers))
+        logger.info('[Subscribe Full Status] ID=%s, Host=%s, TotalSubscribers=%d' % (request.sid, host, subscribers))
     else:
         enabled_full_status = True
 
@@ -173,8 +175,8 @@ def socket_disable_full_status(host):
     if config['monitor']['mode'] == 'app':
         leave_room(host)
         subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
-        logger.info(
-            '[Unsubscribe Full Status] ID=%s host: %s, total subscribers: %d' % (request.sid, host, subscribers))
+        logger.info('[Unsubscribe Full Status] ID=%s, Host=%s, TotalSubscribers=%d' %
+                    (request.sid, host, subscribers))
     else:
         enabled_full_status = False
 
