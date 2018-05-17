@@ -6,8 +6,11 @@ import distro
 import psutil
 from cpuinfo import cpuinfo
 
+import loggers
 import pynvml
 import repository
+
+logger = loggers.get_logger(__name__)
 
 _nvml_inited = False
 _static_info = {
@@ -26,10 +29,10 @@ def init():
     try:
         pynvml.nvmlInit()
         _nvml_inited = True
-        print('[NVML] NVML Initialized')
+        logger.info('[NVML] NVML Initialized')
         _update_nvml_static_info()
     except pynvml.NVMLError as e:
-        print('[NVML] NVML Not Initialized: %s' % str(e))
+        logger.warning('[NVML] NVML Not Initialized: %s' % str(e))
         pass
 
 
@@ -38,9 +41,9 @@ def clean_up():
     if _nvml_inited:
         try:
             pynvml.nvmlShutdown()
-            print('[NVML] NVML Shutdown')
+            logger.info('[NVML] NVML Shutdown')
         except pynvml.NVMLError as e:
-            print('[NVML] NVML Failed to Shutdown: %s' % str(e))
+            logger.error('[NVML] NVML Failed to Shutdown: %s' % str(e))
             pass
     _nvml_inited = False
     _static_info['public'] = {}
@@ -73,7 +76,7 @@ def _update_package_info():
             "label": repository.get_head()
         }
     except Exception as e:
-        print('[Warning] Failed to get the package information: %s' % str(e))
+        logger.error('Failed to get the package information: %s' % str(e))
 
 
 def _update_platform_info():

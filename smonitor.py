@@ -11,7 +11,10 @@ from gevent import monkey
 from requests.adapters import HTTPAdapter
 
 import collector
+import loggers
 import repository
+
+logger = loggers.get_logger(__name__)
 
 monkey.patch_all()
 
@@ -73,38 +76,38 @@ def get_full_status():
 
 @app.route('/api/check_update')
 def check_update():
-    print('[Check Update] Started')
+    logger.info('[Check Update] Started')
     try:
         latest_label, repo_label, runtime_label = _check_update()
         return jsonify(repo_label=repo_label, runtime_label=runtime_label, latest_label=latest_label)
     except Exception as e:
         error = str(e)
-        print('[Check Update] Failed: %s' % error)
+        logger.error('[Check Update] Failed: %s' % error)
         return jsonify(error=error), 500
 
 
 @app.route('/api/self_update')
 def self_update():
-    print('[Self Update] Started')
+    logger.info('[Self Update] Started')
     try:
         latest_label, repo_label, runtime_label = _check_update()
         if runtime_label == latest_label:  # implies repo_label == latest_label
-            print('[Self Update] Already up-to-date')
+            logger.info('[Self Update] Already up-to-date')
             return jsonify(success=True, already_latest=True, label=latest_label)
         if repo_label != latest_label:
             repository.pull()
         socket_io.start_background_task(target=_restart)
     except Exception as e:
         error = str(e)
-        print('[Self Update] Failed: %s' % error)
+        logger.error('[Self Update] Failed: %s' % error)
         return jsonify(error=error), 500
-    print('[Self Update] Succeeded')
+    logger.info('[Self Update] Succeeded')
     return jsonify(success=True, repo_label=repo_label, runtime_label=runtime_label, latest_label=latest_label)
 
 
 @app.route('/api/self_restart')
 def self_restart():
-    print('[Self Restart] Started')
+    logger.info('[Self Restart] Started')
     socket_io.start_background_task(target=_restart)
     return jsonify(success=True)
 
@@ -127,7 +130,7 @@ def socket_connect():
             'user_agent': request.headers.get('User-Agent')
         }
         clients[sid] = new_client
-        print('[Socket Connected] ID=%s, total clients: %d' % (sid, len(clients)))
+        logger.info('[Socket Connected] ID=%s, total clients: %d' % (sid, len(clients)))
         with worker_thread_lock:
             if worker_thread is None:
                 worker_thread = socket_io.start_background_task(target=_status_worker)
@@ -150,7 +153,7 @@ def socket_disconnect():
             del clients[sid]
         if clients:
             socket_io.emit('clients', clients)
-        print('[Socket Disconnected] ID=%s, total clients: %d' % (sid, len(clients)))
+        logger.info('[Socket Disconnected] ID=%s, total clients: %d' % (sid, len(clients)))
 
 
 @socket_io.on('enable_full_status')
@@ -159,7 +162,7 @@ def socket_enable_full_status(host):
     if config['monitor']['mode'] == 'app':
         join_room(host)
         subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
-        print('[Subscribe Full Status] ID=%s host: %s, total subscribers: %d' % (request.sid, host, subscribers))
+        logger.info('[Subscribe Full Status] ID=%s host: %s, total subscribers: %d' % (request.sid, host, subscribers))
     else:
         enabled_full_status = True
 
@@ -170,7 +173,8 @@ def socket_disable_full_status(host):
     if config['monitor']['mode'] == 'app':
         leave_room(host)
         subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
-        print('[Unsubscribe Full Status] ID=%s host: %s, total subscribers: %d' % (request.sid, host, subscribers))
+        logger.info(
+            '[Unsubscribe Full Status] ID=%s host: %s, total subscribers: %d' % (request.sid, host, subscribers))
     else:
         enabled_full_status = False
 
@@ -178,7 +182,7 @@ def socket_disable_full_status(host):
 @socket_io.on('update')
 def socket_update(host_id):
     if config['monitor']['mode'] != 'app':
-        print('[Warning] socket update is only for remote host update in app mode')
+        logger.error('Socket update is only for remote host update in app mode')
         return
     host = None
     for host_group in config['monitor']['host_groups']:
@@ -235,13 +239,13 @@ def _check_update():
 
 def _restart():
     time.sleep(1)
-    print('[Restart] Calling manager to restart')
+    logger.info('[Restart] Calling manager to restart')
     requests.get("http://%s:%d/restart" % (config['manager']['host'], config['manager']['port']))
 
 
 def _status_worker():
     global worker_thread
-    print('[Status Worker] Worker Started')
+    logger.info('[Status Worker] Worker Started')
     interval = config['monitor']['interval']
     app_mode = config['monitor']['mode'] == 'app'
     request_timeout = (0.2, interval)
@@ -263,10 +267,10 @@ def _status_worker():
         if elapsed_time < interval:
             socket_io.sleep(interval - elapsed_time)
         else:
-            print('[Status Worker] Iteration slower than configured interval: %ds' % elapsed_time)
+            logger.warning('[Status Worker] Iteration slower than configured interval: %ds' % elapsed_time)
     with worker_thread_lock:
         worker_thread = None
-    print('[Status Worker] Worker Terminated')
+    logger.info('[Status Worker] Worker Terminated')
 
 
 def _collect_remote_status(host_retry, request_timeout, batch_timeout):
