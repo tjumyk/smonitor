@@ -67,7 +67,7 @@
             <span ng-hide="host.update_result.already_latest">Daemon Updated Successfully</span>
             <span ng-show="host.update_result.already_latest">Daemon Already Up-to-date</span>
         </div>
-        <p ng-show="host.update_result.error">{{host.update_result.error}}</p>
+        <p ng-show="host.update_result.error">{{host.update_result.error.message}}</p>
     </div>
     <div class="ui header">
         <i class="desktop icon"></i>

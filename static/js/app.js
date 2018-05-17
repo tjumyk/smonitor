@@ -11,7 +11,7 @@
         templateUrl: 'static/ui/home.html?t=1804191',
         controller: 'HomeController'
       }).when('/hosts/:hid', {
-        templateUrl: 'static/ui/host.html?t=1805131',
+        templateUrl: 'static/ui/host.html?t=1805171',
         controller: 'HostController'
       }).otherwise({
         templateUrl: 'static/ui/404.html'
@@ -22,7 +22,7 @@
   app.directive('appFooter', function() {
     return {
       restrict: 'A',
-      templateUrl: 'static/ui/footer.html?t=1805111'
+      templateUrl: 'static/ui/footer.html?t=1805171'
     };
   });
 
@@ -282,16 +282,48 @@
       $scope.gpu_memory_idle_threshold = 128 * 1024;
       $scope.server_update = function() {
         $scope.server_updating = true;
-        return $http.get('api/self_update').then(function(response) {
-          $scope.server_updating = false;
-          if (response.data.already_latest) {
+        return $http.get('api/check_update').then(function(response) {
+          var labels;
+          labels = response.data;
+          if (labels.runtime_label === labels.latest_label) {
+            $scope.server_updating = false;
             return alert('Server already up-to-date.');
           } else {
-            alert('Server updated. Click OK to reload this page.');
-            return window.location.reload();
+            if (!confirm("New version available (" + labels.latest_label + "). Do you want to update the server right now?")) {
+              $scope.server_updating = false;
+              return;
+            }
+            return $http.get('api/self_update').then(function(response) {
+              $scope.server_updating = false;
+              alert('Server updated. It may take a few seconds to be ready. Click OK to reload this page.');
+              return window.location.reload();
+            }, function(response) {
+              $scope.server_updating = false;
+              console.error(response);
+              if (response.data.error) {
+                return alert(response.data.error);
+              }
+            });
           }
         }, function(response) {
           $scope.server_updating = false;
+          console.error(response);
+          if (response.data.error) {
+            return alert(response.data.error);
+          }
+        });
+      };
+      $scope.server_restart = function() {
+        if (!confirm('Do you really want to restart the server?')) {
+          return;
+        }
+        $scope.server_restarting = true;
+        return $http.get('api/self_restart').then(function(response) {
+          $scope.server_restarting = false;
+          alert('A restart has been requested. It may take a few seconds to finish. Click OK to reload this page.');
+          return window.location.reload();
+        }, function(response) {
+          $scope.server_restarting = false;
           console.error(response);
           if (response.data.error) {
             return alert(response.data.error);

@@ -71,14 +71,23 @@ def get_full_status():
     return jsonify(collector.get_full_status())
 
 
+@app.route('/api/check_update')
+def check_update():
+    print('[Check Update] Started')
+    try:
+        latest_label, repo_label, runtime_label = _check_update()
+        return jsonify(repo_label=repo_label, runtime_label=runtime_label, latest_label=latest_label)
+    except Exception as e:
+        error = str(e)
+        print('[Check Update] Failed: %s' % error)
+        return jsonify(error=error), 500
+
+
 @app.route('/api/self_update')
 def self_update():
     print('[Self Update] Started')
     try:
-        labels = repository.fetch()
-        repo_label = labels['head']
-        latest_label = labels['fetch_head']
-        runtime_label = collector.get_static_info()['package']['label']
+        latest_label, repo_label, runtime_label = _check_update()
         if runtime_label == latest_label:  # implies repo_label == latest_label
             print('[Self Update] Already up-to-date')
             return jsonify(success=True, already_latest=True, label=latest_label)
@@ -88,9 +97,16 @@ def self_update():
     except Exception as e:
         error = str(e)
         print('[Self Update] Failed: %s' % error)
-        return jsonify(error=error)
+        return jsonify(error=error), 500
     print('[Self Update] Succeeded')
     return jsonify(success=True, repo_label=repo_label, runtime_label=runtime_label, latest_label=latest_label)
+
+
+@app.route('/api/self_restart')
+def self_restart():
+    print('[Self Restart] Started')
+    socket_io.start_background_task(target=_restart)
+    return jsonify(success=True)
 
 
 @socket_io.on('connect')
@@ -197,9 +213,24 @@ def socket_update(host_id):
                 if updated:
                     emit('update_result', {host_id: result})
                 else:
-                    emit('update_result', {host_id: {'error': 'Failed to restart daemon'}})
+                    emit('update_result', {
+                        host_id: {
+                            'error': {
+                                "type": "restart_daemon",
+                                "message": "Failed to restart daemon"
+                            }
+                        }
+                    })
         else:
             emit('update_result', {host_id: result})
+
+
+def _check_update():
+    labels = repository.fetch()
+    repo_label = labels['head']
+    latest_label = labels['fetch_head']
+    runtime_label = collector.get_static_info()['package']['label']
+    return latest_label, repo_label, runtime_label
 
 
 def _restart():

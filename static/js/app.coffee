@@ -7,7 +7,7 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
       templateUrl: 'static/ui/home.html?t=1804191'
       controller: 'HomeController'
     .when '/hosts/:hid',
-      templateUrl: 'static/ui/host.html?t=1805131'
+      templateUrl: 'static/ui/host.html?t=1805171'
       controller: 'HostController'
     .otherwise
       templateUrl: 'static/ui/404.html'
@@ -15,7 +15,7 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
 
 app.directive 'appFooter', ->
   restrict: 'A'
-  templateUrl: 'static/ui/footer.html?t=1805111'
+  templateUrl: 'static/ui/footer.html?t=1805171'
 
 human_size = (size)->
   units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -186,15 +186,39 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
 
   $scope.server_update = ->
     $scope.server_updating = true
-    $http.get('api/self_update').then (response)->
-      $scope.server_updating = false
-      if response.data.already_latest
+    $http.get('api/check_update').then (response)->
+      labels = response.data
+      if labels.runtime_label == labels.latest_label
+        $scope.server_updating = false
         alert('Server already up-to-date.')
       else
-        alert('Server updated. Click OK to reload this page.')
-        window.location.reload()
+        if !confirm("New version available (#{labels.latest_label}). Do you want to update the server right now?")
+          $scope.server_updating = false
+          return
+        $http.get('api/self_update').then (response)->
+          $scope.server_updating = false
+          alert('Server updated. It may take a few seconds to be ready. Click OK to reload this page.')
+          window.location.reload()
+        , (response)->
+          $scope.server_updating = false
+          console.error(response)
+          if response.data.error
+            alert(response.data.error)
     , (response)->
       $scope.server_updating = false
+      console.error(response)
+      if response.data.error
+        alert(response.data.error)
+
+  $scope.server_restart = ->
+    return if !confirm('Do you really want to restart the server?')
+    $scope.server_restarting = true
+    $http.get('api/self_restart').then (response)->
+      $scope.server_restarting = false
+      alert('A restart has been requested. It may take a few seconds to finish. Click OK to reload this page.')
+      window.location.reload()
+    , (response)->
+      $scope.server_restarting = false
       console.error(response)
       if response.data.error
         alert(response.data.error)
