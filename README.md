@@ -82,8 +82,8 @@ B. If there are multiple hosts to monitor, the suggested deployment is as depict
 
 The configuration file is `config.json`, which is excluded from the git tracking. So you have to create this file and edit it as per your use case.
 
-1. For **node** mode, we provide an example configuration file `config_node.json`. You may copy it to `config.json` and edit the contents.
-2. Similarly, for **app** mode, we also provide an example configuration file `config_app.json`. Just copy it to `config.json` and edit the contents.
+1. For **node** mode, we provide an example configuration file `config_node.json`. You may copy it to `config.json` and edit the content.
+2. Similarly, for **app** mode, we also provide an example configuration file `config_app.json`. Just copy it to `config.json` and edit the content.
 
 Most lines of the provided example should be self-explainable. Here we just explain some important points.
 
