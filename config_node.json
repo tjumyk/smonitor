@@ -7,7 +7,7 @@
   "manager": {
     "host": "localhost",
     "port": 6999,
-    "mode": "supervisor"
+    "mode": "self"
   },
   "monitor": {
     "mode": "node",
