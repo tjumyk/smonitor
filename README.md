@@ -16,11 +16,11 @@ This is a simple web server for monitoring the status and metrics of multiple ho
 * Processes (pid, ppid, user, mem, cpu, time, command)
 * Active Users (name, terminal, from address, login time, pid) 
 
-When NVidia(R) GPUs and the corresponding driver are installed, it also support the following metrics
+When NVIDIA(R) GPUs and the corresponding driver are installed, it also support the following metrics
 
 * GPUs (utilization, GPU memory utilization, fan speed, temperature, power, [performance state](https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceEnumvs.html#group__nvmlDeviceEnumvs_1g9de0cdfc67dfc2704b86344a7d5dc4fb), processes using GPUs)
 
-Note: some of the above GPU metrics are not available for old models of NVidia GPUs.
+Note: some of the above GPU metrics are not available for old models of NVIDIA GPUs.
 
 ### Supported OS
 
@@ -119,7 +119,7 @@ If you decide to use nginx, apart from the regular proxy block, you need to add 
 
 ## Disclaimer
 
-Because this is still an on-going (hobby) project, both the architecture and the implementation are subject to change.
+Because this is still an on-going (hobby) project, there is no quality assurance and both the architecture and the implementation are subject to change.
 
 ## License
 
@@ -131,10 +131,10 @@ Because this is still an on-going (hobby) project, both the architecture and the
 
 ![home page](screenshots/home.png)
 
-- The host detail page shows the detailed metrics of a single host (The following host does not have NVidia GPU) 
+- The host detail page shows the detailed metrics of a single host (The following host does not have NVIDIA GPU) 
 
 ![host page](screenshots/host.png)
 
-- If NVidia GPUs are installed, GPU status will be added to the host detail page
+- If NVIDIA GPUs are installed, GPU status will be added to the host detail page
 
 ![gpu cards](screenshots/gpu.png)
