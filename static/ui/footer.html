@@ -5,7 +5,7 @@
 </div>
 <div class="app-footer">
     <div class="ui horizontal list">
-        <div class="item">Created by <a href="mailto:yukai.miao@unsw.edu.au">Yukai (Kelvin) Miao</a></div>
+        <div class="item">Created by <a href="https://github.com/tjumyk/smonitor" target="_blank">Yukai (Kelvin) Miao</a></div>
         <div class="item" ng-show="socket">Server Ping: <span ng-hide="ping!=undefined">Unknown</span><span ng-show="ping!=undefined">{{ping}}ms</span> <button class="ui mini button" ng-click="server_restart()" ng-class="{'loading': server_restarting}">Restart Server</button></div>
         <div class="item" ng-show="config.package">Server Version: {{config.package.label}} <button class="ui mini button" ng-click="server_update()" ng-class="{'loading': server_updating}">Check Update</button></div>
         <div class="item" ng-show="clients">Clients: {{clients_total}} <button class="ui mini button" ng-click="show_client_list=!show_client_list"><span ng-show="show_client_list">Hide</span><span ng-hide="show_client_list">Show</span></button></div>
