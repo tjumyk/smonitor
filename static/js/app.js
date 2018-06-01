@@ -28,6 +28,9 @@
 
   human_size = function(size) {
     var unit_pos, units;
+    if (size === void 0 || size === null) {
+      return 'N/A';
+    }
     units = ['B', 'KB', 'MB', 'GB', 'TB'];
     unit_pos = 0;
     while (size >= 1000 && unit_pos < units.length - 1) {
@@ -43,6 +46,9 @@
   };
 
   percent_level = function(percent) {
+    if (percent === void 0 || percent === null) {
+      return 'N/A';
+    }
     if (percent < 80) {
       return '';
     }

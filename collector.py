@@ -405,7 +405,7 @@ def _get_full_status_nvml():
                 info = _process_info[p.pid]
                 info['gpu_memory'] = p.usedGpuMemory
                 process_list.append(info)
-        process_list.sort(key=lambda i: i['gpu_memory'], reverse=True)
+        process_list.sort(key=lambda i: i['gpu_memory'] or 0, reverse=True)
         full_status = {
             'memory': {
                 'free': mem_info.free,

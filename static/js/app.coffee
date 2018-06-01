@@ -18,6 +18,8 @@ app.directive 'appFooter', ->
   templateUrl: 'static/ui/footer.html?t=1805171'
 
 human_size = (size)->
+  if size == undefined or size == null
+    return 'N/A'
   units = ['B', 'KB', 'MB', 'GB', 'TB']
   unit_pos = 0
   while size >= 1000 and unit_pos < units.length - 1
@@ -30,6 +32,8 @@ human_size = (size)->
   return "#{size}#{units[unit_pos]}"
 
 percent_level = (percent)->
+  if percent == undefined or percent == null
+    return 'N/A'
   if percent < 80
     return ''
   if percent < 90
