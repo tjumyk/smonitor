@@ -17,8 +17,13 @@ def get_index():
     mode = config['manager']['mode']
     info = "mode=%s" % mode
     if mode == 'self' and process is not None:
-        info += " pid=%s" % str(process.pid)
-    return "SMonitor Manager (%s)" % info
+        info += " monitor_pid=%s" % str(process.pid)
+    host = config['server']['host']
+    if host == '0.0.0.0':
+        host = 'localhost'  # Windows-compatible
+    monitor_address = 'http://%s:%d' % (host, config['server']['port'])
+    return "<html><body><h1>SMonitor Manager</h1><p>%s</p><p>Monitor Server: <a href='%s'>%s</a></p></body></html>" % \
+           (info, monitor_address, monitor_address)
 
 
 @app.route('/restart')
