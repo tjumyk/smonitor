@@ -4,7 +4,7 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
   $locationProvider.html5Mode(false)
   $routeProvider
     .when '/',
-      templateUrl: 'static/ui/home.html?t=1804191'
+      templateUrl: 'static/ui/home.html?t=1806201'
       controller: 'HomeController'
     .when '/hosts/:hid',
       templateUrl: 'static/ui/host.html?t=1805171'
@@ -16,6 +16,14 @@ app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationPro
 app.directive 'appFooter', ->
   restrict: 'A'
   templateUrl: 'static/ui/footer.html?t=1805171'
+
+parse_error_response = (response)->
+  if !!response.data and typeof(response.data) == 'object'
+    return response.data
+  else if response.status == -1
+    return {msg: "Connection Aborted!"}
+  else
+    return {msg: '[' + response.status + '] ' + response.statusText, detail: response.data}
 
 human_size = (size)->
   if size == undefined or size == null
@@ -227,14 +235,28 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       if response.data.error
         alert(response.data.error)
 
-  $http.get('api/config').then (response)->
-    raw_config = response.data
+  init = (raw_config)->
     config = angular.copy(raw_config)
     config.site_title = config.site_name + ' \u00B7 System Monitor'
 
+    $scope.loading_websocket = true
     socket = io({
       path: window.location.pathname + 'socket.io'
     })
+    socket.on 'connect', ->
+      $timeout ->
+        $scope.loading_websocket = false
+        $scope.init_success = true
+    socket.on 'connect_error', ->
+      $timeout ->
+        $scope.loading_websocket = false
+        $scope.init_error =
+          msg: 'WebSocket: connection error'
+    socket.on 'connect_timeout', ->
+      $timeout ->
+        $scope.loading_websocket = false
+        $scope.init_error =
+          msg: 'WebSocket: connection timeout'
     socket.on 'pong', (latency)->
       $timeout ->
         $scope.ping = latency
@@ -307,9 +329,22 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
     handle = $interval(update_uptime, 30 * 1000)
     $scope.$on '$destroy', ->
       $interval.cancel(handle)
+
+  $scope.init_success = undefined
+  $scope.init_error = undefined
+  $scope.loading_config = true
+  $http.get('api/config').then (response)->
+    init(response.data)
+  , (response)->
+    $scope.init_error = parse_error_response(response)
+  .finally ->
+    $scope.loading_config = false
 ])
 
 app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http, $timeout)->
+  $timeout ->
+    $('.init-box').addClass('active')
+  , 100
 ]
 
 app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', '$location', ($scope, $http, $timeout, $routeParams, $location)->

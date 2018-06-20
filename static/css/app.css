@@ -231,4 +231,11 @@ body,
 .clients-table {
   margin-bottom: 1em;
 }
+.init-box {
+  opacity: 0;
+  transition: opacity 1s ease-in;
+}
+.init-box.active {
+  opacity: 1.0;
+}
 /*# sourceMappingURL=app.css.map */
