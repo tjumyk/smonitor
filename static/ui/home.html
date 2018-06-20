@@ -10,7 +10,7 @@
                             <div class="sub header"><span ng-show="config.site_name">System Monitor</span> <span ng-show="config && config.mode!='app'">(Mode: {{config.mode}})</span></div>
                         </div>
                     </h1>
-                    <div class="ui error message" ng-show="init_error">
+                    <div class="ui error centered-text message" ng-show="init_error">
                         <div class="header"><i class="times circle icon"></i>{{init_error.msg}}</div>
                         <p>{{init_error.detail}}</p>
                     </div>
