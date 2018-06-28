@@ -4,6 +4,7 @@ import os
 import socket
 import threading
 import time
+import gzip
 
 import requests
 from cryptography.fernet import Fernet, InvalidToken
@@ -51,11 +52,15 @@ _crypt = Fernet(base64.urlsafe_b64encode(config['security']['secret'].encode('ut
 
 
 def _encrypt(content):
-    return base64.urlsafe_b64decode(_crypt.encrypt(json.dumps(content).encode('utf-8')))
+    raw = json.dumps(content).encode('utf-8')
+    zipped = gzip.compress(raw)
+    return base64.urlsafe_b64decode(_crypt.encrypt(zipped))
 
 
 def _decrypt(content):
-    return json.loads(_crypt.decrypt(base64.urlsafe_b64encode(content)).decode('utf-8'))
+    zipped = _crypt.decrypt(base64.urlsafe_b64encode(content))
+    raw = gzip.decompress(zipped)
+    return json.loads(raw.decode('utf-8'))
 
 
 @app.route('/')
