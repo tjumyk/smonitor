@@ -47,8 +47,7 @@ worker_thread_lock = threading.Lock()
 host_info = {}
 enabled_full_status = False
 
-if 'security' in config:
-    _crypt = Fernet(base64.urlsafe_b64encode(config['security']['secret'].encode('utf-8')))
+_crypt = Fernet(base64.urlsafe_b64encode(config['security']['secret'].encode('utf-8')))
 
 
 def _encrypt(content):

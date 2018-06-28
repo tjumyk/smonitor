@@ -9,6 +9,9 @@
     "port": 6999,
     "mode": "self"
   },
+  "security": {
+    "secret": "secretsecretsecretsecretsecretse"
+  },
   "monitor": {
     "mode": "node",
     "site_name": "My Host",
