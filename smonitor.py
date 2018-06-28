@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import socket
@@ -5,7 +6,8 @@ import threading
 import time
 
 import requests
-from flask import Flask, jsonify, request
+from cryptography.fernet import Fernet, InvalidToken
+from flask import Flask, jsonify, request, Response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from gevent import monkey
 from requests.adapters import HTTPAdapter
@@ -45,6 +47,17 @@ worker_thread_lock = threading.Lock()
 host_info = {}
 enabled_full_status = False
 
+if 'security' in config:
+    _crypt = Fernet(base64.urlsafe_b64encode(config['security']['secret'].encode('utf-8')))
+
+
+def _encrypt(content):
+    return base64.urlsafe_b64decode(_crypt.encrypt(json.dumps(content).encode('utf-8')))
+
+
+def _decrypt(content):
+    return json.loads(_crypt.decrypt(base64.urlsafe_b64encode(content)).decode('utf-8'))
+
 
 @app.route('/')
 def index():
@@ -61,17 +74,29 @@ def get_config():
 
 @app.route('/api/info')
 def get_static_info():
-    return jsonify(collector.get_static_info())
+    data = collector.get_static_info()
+
+    if request.args.get('encrypted'):
+        return Response(_encrypt(data), mimetype='application/octet-stream')
+    return jsonify(data)
 
 
 @app.route('/api/status')
 def get_status():
-    return jsonify(collector.get_status())
+    data = collector.get_status()
+
+    if request.args.get('encrypted'):
+        return Response(_encrypt(data), mimetype='application/octet-stream')
+    return jsonify(data)
 
 
 @app.route('/api/full_status')
 def get_full_status():
-    return jsonify(collector.get_full_status())
+    data = collector.get_full_status()
+
+    if request.args.get('encrypted'):
+        return Response(_encrypt(data), mimetype='application/octet-stream')
+    return jsonify(data)
 
 
 @app.route('/api/check_update')
@@ -195,7 +220,7 @@ def socket_update(host_id):
         if host:
             break
     if host:
-        result = _get_remote_data(host, '/api/self_update', (0.2, 30))
+        result = _get_remote_data(host, '/api/self_update', (0.2, 30), False)
         if result.get('success'):
             if result.get('already_latest'):
                 emit('update_result', {host_id: result})
@@ -291,7 +316,7 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
                 if rooms is not None and rooms.get(name):
                     fetch_full_status = True
                 if fetch_full_status:
-                    status = _get_remote_data(host, '/api/full_status', request_timeout)
+                    status = _get_remote_data(host, '/api/full_status', request_timeout, True)
                     if 'error' in status:
                         status_map[name] = status
                         full_status_map[name] = status
@@ -299,12 +324,12 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
                         status_map[name] = status['basic']
                         full_status_map[name] = status['full']
                 else:
-                    status = _get_remote_data(host, '/api/status', request_timeout)
+                    status = _get_remote_data(host, '/api/status', request_timeout, True)
                     status_map[name] = status
                 info = {}
                 existing_info = host_info.get(name)
                 if 'error' in status or existing_info is None or 'error' in existing_info:
-                    info = _get_remote_data(host, '/api/info', request_timeout)
+                    info = _get_remote_data(host, '/api/info', request_timeout, True)
                     info_map[name] = info
                     host_info[name] = info
                 if 'error' in status or 'error' in info:
@@ -343,13 +368,16 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
         socket_io.emit('full_status', {host_name: status}, room=host_name)
 
 
-def _get_remote_data(host, path, timeout):
+def _get_remote_data(host, path, timeout, encrypted):
     address = host['address']
     port_num = host.get('port') or config['server']['port']
     response = None
     data = None
     try:
-        response = session.get("http://%s:%d%s" % (address, port_num, path), timeout=timeout)
+        url = "http://%s:%d%s" % (address, port_num, path)
+        if encrypted:
+            url += '?encrypted=1'
+        response = session.get(url, timeout=timeout)
     except Exception as e:
         data = {
             "error": {
@@ -363,18 +391,30 @@ def _get_remote_data(host, path, timeout):
             data = {
                 "error": {
                     "type": "remote_status_request",
-                    "message": "Error response (%d) when requesting status of remote host" %
+                    "message": "Error response (%d) when requesting data from remote host" %
                                response.status_code
                 }
             }
         else:
             try:
-                data = json.loads(response.content.decode())
+                content = response.content
+                if encrypted:
+                    data = _decrypt(content)
+                else:
+                    data = json.loads(content.decode())
+            except InvalidToken as e:
+                data = {
+                    "error": {
+                        "type": "remote_status_decryption",
+                        "message": "Failed to decrypt data from remote host",
+                        "exception": str(e)
+                    }
+                }
             except Exception as e:
                 data = {
                     "error": {
                         "type": "remote_status_parsing",
-                        "message": "Failed to parse status of remote host",
+                        "message": "Failed to parse data from remote host",
                         "exception": str(e)
                     }
                 }

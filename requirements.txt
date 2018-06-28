@@ -5,3 +5,4 @@ gevent-websocket
 requests
 distro
 py-cpuinfo
+cryptography
