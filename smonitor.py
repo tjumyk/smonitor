@@ -82,6 +82,8 @@ def get_static_info():
 
     if request.args.get('encrypted'):
         return Response(_encrypt(data), mimetype='application/octet-stream')
+    elif request.remote_addr != '127.0.0.1':
+        return jsonify(error='Access forbidden'), 403
     return jsonify(data)
 
 
@@ -91,6 +93,8 @@ def get_status():
 
     if request.args.get('encrypted'):
         return Response(_encrypt(data), mimetype='application/octet-stream')
+    elif request.remote_addr != '127.0.0.1':
+        return jsonify(error='Access forbidden'), 403
     return jsonify(data)
 
 
@@ -100,6 +104,8 @@ def get_full_status():
 
     if request.args.get('encrypted'):
         return Response(_encrypt(data), mimetype='application/octet-stream')
+    elif request.remote_addr != '127.0.0.1':
+        return jsonify(error='Access forbidden'), 403
     return jsonify(data)
 
 
