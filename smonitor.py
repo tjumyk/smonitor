@@ -15,7 +15,9 @@ from requests.adapters import HTTPAdapter
 
 import collector
 import loggers
+import oauth
 import repository
+from oauth import requires_login
 
 logger = loggers.get_logger(__name__)
 
@@ -50,6 +52,8 @@ enabled_full_status = False
 
 _crypt = Fernet(base64.urlsafe_b64encode(config['security']['secret'].encode('utf-8')))
 
+oauth.init_app(app)
+
 
 def _encrypt(content):
     raw = json.dumps(content).encode('utf-8')
@@ -64,11 +68,13 @@ def _decrypt(content):
 
 
 @app.route('/')
+@requires_login
 def index():
     return app.send_static_file('index.html')
 
 
 @app.route('/api/config')
+@requires_login
 def get_config():
     _config = dict(config['monitor'])
     _config['port'] = config['server']['port']
@@ -77,6 +83,7 @@ def get_config():
 
 
 @app.route('/api/info')
+@requires_login
 def get_static_info():
     data = collector.get_static_info()
 
@@ -88,6 +95,7 @@ def get_static_info():
 
 
 @app.route('/api/status')
+@requires_login
 def get_status():
     data = collector.get_status()
 
@@ -99,6 +107,7 @@ def get_status():
 
 
 @app.route('/api/full_status')
+@requires_login
 def get_full_status():
     data = collector.get_full_status()
 
@@ -110,6 +119,7 @@ def get_full_status():
 
 
 @app.route('/api/check_update')
+@requires_login
 def check_update():
     logger.info('[Check Update] Started')
     try:
@@ -122,6 +132,7 @@ def check_update():
 
 
 @app.route('/api/self_update')
+@requires_login
 def self_update():
     logger.info('[Self Update] Started')
     try:
@@ -141,6 +152,7 @@ def self_update():
 
 
 @app.route('/api/self_restart')
+@requires_login
 def self_restart():
     logger.info('[Self Restart] Started')
     socket_io.start_background_task(target=_restart)
