@@ -8,7 +8,10 @@
     "url": "http://localhost:8077/",
     "connect_page": "oauth/connect",
     "token_api": "api/oauth/token",
-    "profile_api": "api/oauth/me"
+    "profile_api": "api/oauth/me",
+    "links": {
+      "profile": "settings/profile"
+    }
   },
   "client": {
     "id": 1,

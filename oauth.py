@@ -47,7 +47,16 @@ class User:
         self.email = email
         self.nickname = nickname
         self.avatar = avatar
+
         self.groups = []
+        self.links = {}
+
+    def __repr__(self):
+        return '<User %r>' % self.name
+
+    def to_dict(self):
+        return dict(id=self.id, name=self.name, email=self.email, nickname=self.nickname, avatar=self.avatar,
+                    groups=[group.to_dict() for group in self.groups], links=self.links)
 
 
 class Group:
@@ -55,6 +64,12 @@ class Group:
         self.id = _id
         self.name = name
         self.description = description
+
+    def __repr__(self):
+        return '<Group %r>' % self.name
+
+    def to_dict(self):
+        return dict(id=self.id, name=self.name, description=self.description)
 
 
 # ==== Helper functions ====
@@ -136,6 +151,20 @@ def _parse_user(_dict):
         raise OAuthResultError('user name is missing or empty')
     if not user.email:
         raise OAuthResultError('user email is missing or empty')
+
+    config = current_app.config.get(_config_key)
+    config_server = config['server']
+    server_url = config_server['url']
+
+    # fix prefix for avatars
+    if user.avatar and not user.avatar.startswith('http://') and not user.avatar.startswith('https://'):
+        user.avatar = server_url + user.avatar
+
+    # add useful links
+    links = config_server.get('links')
+    for k, v in links.items():
+        user.links[k] = server_url + v
+
     group_dicts = _dict.get('groups')
     for group_dict in group_dicts:
         user.groups.append(_parse_group(group_dict))
