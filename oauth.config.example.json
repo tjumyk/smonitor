@@ -5,12 +5,12 @@
     "127.0.0.1"
   ],
   "server": {
-    "url": "http://localhost:8077/",
-    "connect_page": "oauth/connect",
-    "token_api": "api/oauth/token",
-    "profile_api": "api/oauth/me",
+    "url": "http://localhost:8077",
+    "connect_page": "/oauth/connect",
+    "token_api": "/api/oauth/token",
+    "profile_api": "/api/oauth/me",
     "links": {
-      "profile": "settings/profile"
+      "profile": "/settings/profile"
     }
   },
   "client": {

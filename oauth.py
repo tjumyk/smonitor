@@ -151,14 +151,19 @@ def _is_oauth_skipped():
 
 def _get_original_path():
     if _preferred_mime() == 'text/html':
-        return request.full_path
+        return request.full_path.rstrip('?')
     else:
         referrer = request.referrer  # use the referer page rather than the URL for the current request
         config = current_app.config.get(_config_key)
         config_client = config['client']
         client_url_prefix = config_client['url'].rstrip('/')
         if referrer and referrer.startswith(client_url_prefix):
-            return referrer[len(client_url_prefix):]
+            path = referrer[len(client_url_prefix):]
+            if not path:
+                return '/'
+            if path[0] != '/':
+                return None  # invalid path
+            return path
         else:
             return None  # cannot find a reliable one
 
@@ -195,7 +200,7 @@ def _parse_user(_dict):
 
     # fix prefix for avatars
     if user.avatar and not user.avatar.startswith('http://') and not user.avatar.startswith('https://'):
-        user.avatar = server_url + user.avatar
+        user.avatar = server_url + '/' + user.avatar.lstrip('/')
 
     # add useful links
     links = config_server.get('links')
