@@ -35,6 +35,14 @@ else:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config['server']['secret']
+
+cookie_name = config['server'].get('cookie_name')
+if cookie_name:
+    app.config['SESSION_COOKIE_NAME'] = cookie_name
+cookie_path = config['server'].get('cookie_path')
+if cookie_path:
+    app.config['SESSION_COOKIE_PATH'] = cookie_path
+
 socket_io = SocketIO(app, async_mode='gevent')
 
 session = requests.session()
@@ -160,6 +168,7 @@ def self_restart():
 
 
 @socket_io.on('connect')
+@requires_login
 def socket_connect():
     global worker_thread
     with clients_lock:

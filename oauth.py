@@ -75,31 +75,40 @@ def _preferred_mime():
     return 'text/html'
 
 
-def _build_redirect_url():
+def _build_redirect_url(original_path, state):
     config = current_app.config.get(_config_key)
     config_server = config['server']
     config_client = config['client']
     params = {
         'client_id': config_client['id'],
-        'redirect_url': config_client['redirect_url']
+        'redirect_url': config_client['url'] + config_client['callback_path']
     }
+    if original_path:
+        params['original_path'] = original_path
+    if state:
+        params['state'] = state
     redirect_url = config_server['url'] + config_server['connect_page']
     return redirect_url + '?' + urlencode(params)
 
 
-def _build_error_output(error: OAuthError):
+def _build_error_response(error: OAuthError, original_path, previous_state=None):
     mime = _preferred_mime()
-    redirect_url = _build_redirect_url()
-    if isinstance(error, (OAuthRequired, OAuthRequestError)):
+    if isinstance(error, (OAuthRequired, OAuthRequestError)) \
+            and previous_state not in ['new_request', 'request_error']:  # avoid infinite redirect
+        if isinstance(error, OAuthRequired):
+            state = 'new_request'
+        else:
+            state = 'request_error'
+        redirect_url = _build_redirect_url(original_path=original_path, state=state)
         if mime == 'text/html':
             return redirect(redirect_url)
         else:
-            return jsonify(msg=error.msg, detail=error.detail, redirect_url=redirect_url), 403
+            return jsonify(msg=error.msg, detail=error.detail, redirect_url=redirect_url), 401
     else:
         if mime == 'text/html':
             return _error_html(error.msg, error.detail), 500
         else:
-            return jsonify(msg=error.msg, detail=error.detail, redirect_url=redirect_url), 500
+            return jsonify(msg=error.msg, detail=error.detail), 500
 
 
 # ==== Parsers ====
@@ -149,13 +158,16 @@ def _parse_group(_dict):
 # ==== API requests ====
 
 def _request_oauth_user(access_token):
+    if not access_token:
+        raise OAuthRequestError('access token is required')
+
     config = current_app.config.get(_config_key)
     config_server = config['server']
 
     try:
         response = requests.get(config_server['url'] + config_server['profile_api'], {'oauth_token': access_token})
     except IOError:
-        raise OAuthAPIError('failed to access OAuth API')
+        raise OAuthAPIError('failed to access OAuth API (user profile)')
 
     if response.status_code != 200:
         raise _parse_response_error(response)
@@ -167,6 +179,9 @@ def _request_oauth_user(access_token):
 
 
 def _request_access_token(authorization_token):
+    if not authorization_token:
+        raise OAuthRequestError('authorization token is required')
+
     config = current_app.config.get(_config_key)
     config_server = config['server']
     config_client = config['client']
@@ -174,14 +189,14 @@ def _request_access_token(authorization_token):
     params = {
         'client_id': config_client['id'],
         'client_secret': config_client['secret'],
-        'redirect_url': config_client['redirect_url'],
+        'redirect_url': config_client['url'] + config_client['callback_path'],
         'token': authorization_token
     }
 
     try:
         response = requests.post(config_server['url'] + config_server['token_api'], params)
     except IOError:
-        raise OAuthAPIError('failed to access OAuth API')
+        raise OAuthAPIError('failed to access OAuth API (access token)')
 
     if response.status_code != 200:
         raise _parse_response_error(response)
@@ -193,22 +208,35 @@ def _request_access_token(authorization_token):
     token = data.get('access_token')
     if not token:
         raise OAuthResultError('access_token is missing or empty')
+    return token
 
 
 # ==== OAuth callback ====
 
 def _oauth_callback():
+    config = current_app.config.get(_config_key)
+    config_client = config['client']
+
     args = request.args
     token = args.get('token')
+    state = args.get('state')
+    original_path = args.get('original_path')
+
     try:
         access_token = _request_access_token(token)
         user = _request_oauth_user(access_token)
 
         session[_session_uid_key] = user.id
         session[_session_access_token_key] = access_token
-        return redirect('/')
+
+        if original_path:
+            if original_path[0] != '/':
+                original_path = '/' + original_path  # ensure URL to self
+        else:
+            original_path = '/'
+        return redirect(config_client['url'] + original_path)
     except OAuthError as e:
-        return _build_error_output(e)
+        return _build_error_response(e, original_path, state)
 
 
 # ==== public decorators ====
@@ -239,7 +267,7 @@ def requires_login(f):
             get_user()
             return f(*args, **kwargs)
         except OAuthError as e:
-            return _build_error_output(e)
+            return _build_error_response(e, request.full_path)
 
     return wrapped
 
@@ -257,9 +285,7 @@ def get_user() -> [User, None]:
     """
     Get User with access token stored in session.
 
-    Because this involves remote API access, it could be slow and may throw exceptions defined in this module.
-    The retrieved User will be temporarily cached in the request context, so any subsequent calls within the same
-    request context will not trigger the API access.
+    Call this inside a function protected by @requires_login. Otherwise, you need to handle possible exceptions.
     """
     user = g.get(_request_user_key)
     if user is not None:
@@ -300,7 +326,6 @@ def init_app(app: Flask, config_file: str = 'oauth.config.json') -> None:
         app.config[_config_key] = config
     app.add_url_rule(config['client']['callback_path'], None, _oauth_callback)
 
-# FIXME infinite redirect
-# FIXME 'null' state parameter
-# TODO connect via API?
+# TODO connect via API? --> avoid infinite loop && CORS issues
 # TODO automatically update access token?
+# TODO auto prefix avatar URL?

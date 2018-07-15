@@ -1,13 +1,12 @@
 {
   "enabled": true,
-  "resolve_real_ip": true,
+  "resolve_real_ip": false,
   "whitelist": [
     "127.0.0.1"
   ],
   "server": {
     "url": "http://localhost:8077/",
     "connect_page": "oauth/connect",
-    "connect_api": "api/oauth/connect",
     "token_api": "api/oauth/token",
     "profile_api": "api/oauth/me"
   },
