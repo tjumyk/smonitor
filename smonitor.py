@@ -1,10 +1,10 @@
 import base64
+import gzip
 import json
 import os
 import socket
 import threading
 import time
-import gzip
 
 import requests
 from cryptography.fernet import Fernet, InvalidToken
@@ -171,8 +171,12 @@ def self_restart():
 
 
 @socket_io.on('connect')
-@requires_login
 def socket_connect():
+    try:
+        oauth.get_user()  # will return None if OAuth is skipped
+    except oauth.OAuthError:
+        return False
+
     global worker_thread
     with clients_lock:
         sid = request.sid
