@@ -213,12 +213,16 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
           window.location.reload()
         , (response)->
           $scope.server_updating = false
+          if response.status == 401 and response.data.redirect_url # oauth redirect
+            window.location.href = response.data.redirect_url
           console.error(response)
           if response.data.error
             alert(response.data.error)
     , (response)->
       $scope.server_updating = false
-      console.error(response)
+      if response.status == 401 and response.data.redirect_url # oauth redirect
+        window.location.href = response.data.redirect_url
+        return
       if response.data.error
         alert(response.data.error)
 
@@ -231,6 +235,9 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       window.location.reload()
     , (response)->
       $scope.server_restarting = false
+      if response.status == 401 and response.data.redirect_url # oauth redirect
+        window.location.href = response.data.redirect_url
+        return
       console.error(response)
       if response.data.error
         alert(response.data.error)
@@ -265,6 +272,13 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       $http.get('api/config').then (response)->
         if not angular.equals(raw_config, response.data)
           window.location.reload()
+      , (response)->
+        if response.status == 401 and response.data.redirect_url # oauth redirect
+          window.location.href = response.data.redirect_url
+          return
+        console.error(response)
+        if response.data.error
+          alert(response.data.error)
     socket.on 'reconnect_attempt', ->
       $('.reconnect.dimmer').dimmer({
         'closable': false
@@ -336,6 +350,9 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
   $http.get('api/config').then (response)->
     init(response.data)
   , (response)->
+    if response.status == 401 and response.data.redirect_url # oauth redirect
+      window.location.href = response.data.redirect_url
+      return
     $scope.init_error = parse_error_response(response)
   .finally ->
     $scope.loading_config = false

@@ -320,6 +320,9 @@
               return window.location.reload();
             }, function(response) {
               $scope.server_updating = false;
+              if (response.status === 401 && response.data.redirect_url) {
+                window.location.href = response.data.redirect_url;
+              }
               console.error(response);
               if (response.data.error) {
                 return alert(response.data.error);
@@ -328,7 +331,10 @@
           }
         }, function(response) {
           $scope.server_updating = false;
-          console.error(response);
+          if (response.status === 401 && response.data.redirect_url) {
+            window.location.href = response.data.redirect_url;
+            return;
+          }
           if (response.data.error) {
             return alert(response.data.error);
           }
@@ -345,6 +351,10 @@
           return window.location.reload();
         }, function(response) {
           $scope.server_restarting = false;
+          if (response.status === 401 && response.data.redirect_url) {
+            window.location.href = response.data.redirect_url;
+            return;
+          }
           console.error(response);
           if (response.data.error) {
             return alert(response.data.error);
@@ -391,6 +401,15 @@
           return $http.get('api/config').then(function(response) {
             if (!angular.equals(raw_config, response.data)) {
               return window.location.reload();
+            }
+          }, function(response) {
+            if (response.status === 401 && response.data.redirect_url) {
+              window.location.href = response.data.redirect_url;
+              return;
+            }
+            console.error(response);
+            if (response.data.error) {
+              return alert(response.data.error);
             }
           });
         });
@@ -512,6 +531,10 @@
       return $http.get('api/config').then(function(response) {
         return init(response.data);
       }, function(response) {
+        if (response.status === 401 && response.data.redirect_url) {
+          window.location.href = response.data.redirect_url;
+          return;
+        }
         return $scope.init_error = parse_error_response(response);
       })["finally"](function() {
         return $scope.loading_config = false;

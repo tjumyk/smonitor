@@ -91,7 +91,7 @@ def _build_redirect_url(original_path, state):
     return redirect_url + '?' + urlencode(params)
 
 
-def _build_error_response(error: OAuthError, original_path, previous_state=None):
+def _build_error_response(error: OAuthError, original_path=None, previous_state=None):
     mime = _preferred_mime()
     if isinstance(error, (OAuthRequired, OAuthRequestError)) \
             and previous_state not in ['new_request', 'request_error']:  # avoid infinite redirect
@@ -234,7 +234,7 @@ def _oauth_callback():
                 original_path = '/' + original_path  # ensure URL to self
         else:
             original_path = '/'
-        return redirect(config_client['url'] + original_path)
+        return redirect(config_client['url'].rstrip('/') + original_path)
     except OAuthError as e:
         return _build_error_response(e, original_path, state)
 
@@ -245,6 +245,7 @@ def requires_login(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
         config = current_app.config.get(_config_key)
+        config_client = config['client']
 
         # if disabled
         if not config.get('enabled'):
@@ -267,7 +268,16 @@ def requires_login(f):
             get_user()
             return f(*args, **kwargs)
         except OAuthError as e:
-            return _build_error_response(e, request.full_path)
+            if _preferred_mime() == 'text/html':
+                original_path = request.full_path
+            else:
+                referrer = request.referrer  # use the referer page rather than the URL for the current request
+                client_url_prefix = config_client['url'].rstrip('/')
+                if referrer and referrer.startswith(client_url_prefix):
+                    original_path = referrer[len(client_url_prefix):]
+                else:
+                    original_path = None  # cannot find a reliable one
+            return _build_error_response(e, original_path)
 
     return wrapped
 
@@ -329,3 +339,4 @@ def init_app(app: Flask, config_file: str = 'oauth.config.json') -> None:
 # TODO connect via API? --> avoid infinite loop && CORS issues
 # TODO automatically update access token?
 # TODO auto prefix avatar URL?
+# TODO fix socket authentication
