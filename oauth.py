@@ -126,6 +126,29 @@ def _build_error_response(error: OAuthError, original_path=None, previous_state=
             return jsonify(msg=error.msg, detail=error.detail), 500
 
 
+def _is_oauth_skipped():
+    config = current_app.config.get(_config_key)
+
+    # if disabled
+    if not config.get('enabled'):
+        return True
+
+    # if need real ip (when using a reverse-proxy like nginx)
+    if config.get('resolve_real_ip'):
+        ip = request.environ.get('HTTP_X_FORWARDED_FOR') or \
+             request.environ.get('HTTP_X_REAL_IP') or \
+             request.remote_addr
+    else:
+        ip = request.remote_addr
+
+    # if whitelisted
+    whitelist = config.get('whitelist')
+    if whitelist and ip in whitelist:
+        return True
+
+    return False
+
+
 # ==== Parsers ====
 
 def _parse_response_error(response):
@@ -273,24 +296,7 @@ def _oauth_callback():
 def requires_login(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
-        config = current_app.config.get(_config_key)
-        config_client = config['client']
-
-        # if disabled
-        if not config.get('enabled'):
-            return f(*args, **kwargs)
-
-        # if need real ip (when using a reverse-proxy like nginx)
-        if config.get('resolve_real_ip'):
-            ip = request.environ.get('HTTP_X_FORWARDED_FOR') or \
-                 request.environ.get('HTTP_X_REAL_IP') or \
-                 request.remote_addr
-        else:
-            ip = request.remote_addr
-
-        # if whitelisted
-        whitelist = config.get('whitelist')
-        if whitelist and ip in whitelist:
+        if _is_oauth_skipped():
             return f(*args, **kwargs)
 
         try:
@@ -301,6 +307,8 @@ def requires_login(f):
                 original_path = request.full_path
             else:
                 referrer = request.referrer  # use the referer page rather than the URL for the current request
+                config = current_app.config.get(_config_key)
+                config_client = config['client']
                 client_url_prefix = config_client['url'].rstrip('/')
                 if referrer and referrer.startswith(client_url_prefix):
                     original_path = referrer[len(client_url_prefix):]
@@ -326,6 +334,8 @@ def get_user() -> [User, None]:
 
     Call this inside a function protected by @requires_login. Otherwise, you need to handle possible exceptions.
     """
+    if _is_oauth_skipped():  # return None only if OAuth is skipped
+        return None
     user = g.get(_request_user_key)
     if user is not None:
         return user
