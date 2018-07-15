@@ -149,6 +149,20 @@ def _is_oauth_skipped():
     return False
 
 
+def _get_original_path():
+    if _preferred_mime() == 'text/html':
+        return request.full_path
+    else:
+        referrer = request.referrer  # use the referer page rather than the URL for the current request
+        config = current_app.config.get(_config_key)
+        config_client = config['client']
+        client_url_prefix = config_client['url'].rstrip('/')
+        if referrer and referrer.startswith(client_url_prefix):
+            return referrer[len(client_url_prefix):]
+        else:
+            return None  # cannot find a reliable one
+
+
 # ==== Parsers ====
 
 def _parse_response_error(response):
@@ -296,25 +310,11 @@ def _oauth_callback():
 def requires_login(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
-        if _is_oauth_skipped():
-            return f(*args, **kwargs)
-
         try:
-            get_user()
+            get_user()  # will return None if OAuth is skipped
             return f(*args, **kwargs)
         except OAuthError as e:
-            if _preferred_mime() == 'text/html':
-                original_path = request.full_path
-            else:
-                referrer = request.referrer  # use the referer page rather than the URL for the current request
-                config = current_app.config.get(_config_key)
-                config_client = config['client']
-                client_url_prefix = config_client['url'].rstrip('/')
-                if referrer and referrer.startswith(client_url_prefix):
-                    original_path = referrer[len(client_url_prefix):]
-                else:
-                    original_path = None  # cannot find a reliable one
-            return _build_error_response(e, original_path)
+            return _build_error_response(e, _get_original_path())
 
     return wrapped
 
@@ -333,8 +333,9 @@ def get_user() -> [User, None]:
     Get User with access token stored in session.
 
     Call this inside a function protected by @requires_login. Otherwise, you need to handle possible exceptions.
+    It returns None only if OAuth is skipped (disabled or whitelisted).
     """
-    if _is_oauth_skipped():  # return None only if OAuth is skipped
+    if _is_oauth_skipped():
         return None
     user = g.get(_request_user_key)
     if user is not None:
