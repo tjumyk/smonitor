@@ -383,5 +383,3 @@ def init_app(app: Flask, config_file: str = 'oauth.config.json') -> None:
 
 # TODO connect via API? --> avoid infinite loop && CORS issues
 # TODO automatically update access token?
-# TODO auto prefix avatar URL?
-# TODO fix socket authentication
