@@ -16,7 +16,7 @@
   "client": {
     "id": 1,
     "secret": "someLongSecretString",
-    "redirect_url": "http://localhost:8999/oauth-callback",
+    "url": "http://localhost:8999",
     "callback_path": "/oauth-callback"
   }
 }
