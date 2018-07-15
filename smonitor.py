@@ -87,6 +87,7 @@ def get_config():
     _config = dict(config['monitor'])
     _config['port'] = config['server']['port']
     _config['package'] = collector.get_static_info()['package']
+    _config['user'] = oauth.get_user().to_dict()
     return jsonify(_config)
 
 
