@@ -182,7 +182,7 @@ def socket_connect():
         sid = request.sid
         address = None
         if config['server'].get('behind_proxy'):
-            address = request.environ.get('HTTP_X_FORWARDED_FOR') or request.environ.get('HTTP_X_REAL_IP')
+            address = request.environ.get('HTTP_X_REAL_IP')
         if address is None:
             address = request.remote_addr
         user_agent = request.headers.get('User-Agent')
