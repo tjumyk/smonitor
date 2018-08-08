@@ -1,9 +1,14 @@
 import json
+import logging
 from functools import wraps
 from urllib.parse import urlencode
 
 import requests
 from flask import Flask, request, current_app, session, redirect, g, jsonify
+
+# ==== Logger ====
+
+logger = logging.getLogger(__name__)
 
 # ==== Constants ====
 
@@ -235,8 +240,10 @@ def _request_oauth_user(access_token):
     config_server = config['server']
 
     try:
+        logger.info('Requesting user profile')
         response = requests.get(config_server['url'] + config_server['profile_api'], {'oauth_token': access_token})
     except IOError:
+        logger.exception('Failed to get user profile')
         raise OAuthAPIError('failed to access OAuth API (user profile)')
 
     if response.status_code != 200:
@@ -264,8 +271,10 @@ def _request_access_token(authorization_token):
     }
 
     try:
+        logger.info('Requesting access token')
         response = requests.post(config_server['url'] + config_server['token_api'], params)
     except IOError:
+        logger.exception('Failed to get access token')
         raise OAuthAPIError('failed to access OAuth API (access token)')
 
     if response.status_code != 200:
