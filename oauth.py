@@ -1,14 +1,10 @@
 import json
-import logging
 from functools import wraps
+from typing import List
 from urllib.parse import urlencode
 
 import requests
 from flask import Flask, request, current_app, session, redirect, g, jsonify
-
-# ==== Logger ====
-
-logger = logging.getLogger(__name__)
 
 # ==== Constants ====
 
@@ -16,6 +12,10 @@ _config_key = 'OAUTH'
 _request_user_key = 'oauth_user'
 _session_uid_key = 'uid'
 _session_access_token_key = 'access_token'
+_admin_group_name = 'admin'
+
+# ==== Internal Variables ====
+_login_callback = None
 
 
 # ==== Exceptions ====
@@ -54,14 +54,13 @@ class User:
         self.avatar = avatar
 
         self.groups = []
-        self.links = {}
 
     def __repr__(self):
         return '<User %r>' % self.name
 
     def to_dict(self):
         return dict(id=self.id, name=self.name, email=self.email, nickname=self.nickname, avatar=self.avatar,
-                    groups=[group.to_dict() for group in self.groups], links=self.links)
+                    groups=[group.to_dict() for group in self.groups])
 
 
 class Group:
@@ -142,8 +141,7 @@ def _is_oauth_skipped():
     if whitelist:  # need to check if the client ip is in whitelist
         # if need real ip (when using a reverse-proxy like nginx)
         if config.get('resolve_real_ip'):
-            ip = request.environ.get('HTTP_X_REAL_IP') or \
-                 request.remote_addr
+            ip = request.environ.get('HTTP_X_REAL_IP') or request.remote_addr
         else:
             ip = request.remote_addr
         # if whitelisted
@@ -206,14 +204,10 @@ def _parse_user(_dict):
     if user.avatar and not user.avatar.startswith('http://') and not user.avatar.startswith('https://'):
         user.avatar = server_url + '/' + user.avatar.lstrip('/')
 
-    # add useful links
-    links = config_server.get('links')
-    for k, v in links.items():
-        user.links[k] = server_url + v
-
     group_dicts = _dict.get('groups')
-    for group_dict in group_dicts:
-        user.groups.append(_parse_group(group_dict))
+    if group_dicts:
+        for group_dict in group_dicts:
+            user.groups.append(_parse_group(group_dict))
     return user
 
 
@@ -232,29 +226,6 @@ def _parse_group(_dict):
 
 # ==== API requests ====
 
-def _request_oauth_user(access_token):
-    if not access_token:
-        raise OAuthRequestError('access token is required')
-
-    config = current_app.config.get(_config_key)
-    config_server = config['server']
-
-    try:
-        logger.info('Requesting user profile')
-        response = requests.get(config_server['url'] + config_server['profile_api'], {'oauth_token': access_token})
-    except IOError:
-        logger.exception('Failed to get user profile')
-        raise OAuthAPIError('failed to access OAuth API (user profile)')
-
-    if response.status_code != 200:
-        raise _parse_response_error(response)
-    try:
-        _dict = response.json()
-    except ValueError:
-        raise OAuthResultError('invalid data format (user profile)')
-    return _parse_user(_dict)
-
-
 def _request_access_token(authorization_token):
     if not authorization_token:
         raise OAuthRequestError('authorization token is required')
@@ -271,10 +242,8 @@ def _request_access_token(authorization_token):
     }
 
     try:
-        logger.info('Requesting access token')
         response = requests.post(config_server['url'] + config_server['token_api'], params)
     except IOError:
-        logger.exception('Failed to get access token')
         raise OAuthAPIError('failed to access OAuth API (access token)')
 
     if response.status_code != 200:
@@ -290,7 +259,51 @@ def _request_access_token(authorization_token):
     return token
 
 
-# ==== OAuth callback ====
+def _request_resource(path, access_token, method='get', **kwargs):
+    if not access_token:
+        raise OAuthRequestError('access token is required')
+    config = current_app.config.get(_config_key)
+    config_server = config['server']
+    if 'params' in kwargs:
+        params = dict(kwargs['params'])
+    else:
+        params = {}
+    params['oauth_token'] = access_token
+    try:
+        response = requests.request(method, config_server['url'] + path, params=params, **kwargs)
+    except IOError as e:
+        raise OAuthAPIError('failed to access OAuth API')
+    if response.status_code // 100 != 2:
+        raise _parse_response_error(response)
+    return response
+
+
+def _request_resource_json(path, access_token, method='get', **kwargs):
+    response = _request_resource(path, access_token, method, **kwargs)
+    try:
+        return response.json()
+    except ValueError:
+        raise OAuthResultError('invalid data format')
+
+
+def _request_oauth_user(access_token):
+    config = current_app.config.get(_config_key)
+    config_server = config['server']
+    data = _request_resource_json(config_server['profile_api'], access_token)
+    return _parse_user(data)
+
+
+# ==== other private stuff ====
+
+def _get_access_token():
+    token = session.get(_session_access_token_key)
+    if token is None:
+        clear_user()
+        raise OAuthRequired()
+    return token
+
+
+# ==== Register Endpoints ====
 
 def _oauth_callback():
     config = current_app.config.get(_config_key)
@@ -324,7 +337,36 @@ def requires_login(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
         try:
-            get_user()  # will return None if OAuth is skipped
+            user = get_user()  # will return None if OAuth is skipped
+            if user and _login_callback:
+                ret = _login_callback(user)
+                if ret is not None:
+                    return ret
+            return f(*args, **kwargs)
+        except OAuthError as e:
+            return _build_error_response(e, _get_original_path())
+
+    return wrapped
+
+
+def requires_admin(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        try:
+            user = get_user()  # will return None if OAuth is skipped
+            if user and _login_callback:
+                ret = _login_callback(user)
+                if ret is not None:
+                    return ret
+            if user is None:
+                return jsonify(msg='user info required'), 401
+            is_admin = False
+            for group in user.groups:
+                if group.name == _admin_group_name:
+                    is_admin = True
+                    break
+            if not is_admin:
+                return jsonify(msg='admin required'), 403
             return f(*args, **kwargs)
         except OAuthError as e:
             return _build_error_response(e, _get_original_path())
@@ -357,10 +399,7 @@ def get_user() -> [User, None]:
     if uid is None:
         clear_user()
         raise OAuthRequired()
-    access_token = session.get(_session_access_token_key)
-    if access_token is None:
-        clear_user()
-        raise OAuthRequired()
+    access_token = _get_access_token()
     user = _request_oauth_user(access_token)
     setattr(g, _request_user_key, user)
     return user
@@ -378,16 +417,60 @@ def clear_user() -> None:
         del session[_session_access_token_key]
 
 
-def init_app(app: Flask, config_file: str = 'oauth.config.json') -> None:
+def get_users() -> List[User]:
+    config = current_app.config.get(_config_key)
+    data = _request_resource_json(config['server']['admin_users_api'], _get_access_token())
+    user_dicts = data['users']
+    group_dicts = data['groups']
+    groups = {g['id']: _parse_group(g) for g in group_dicts}
+    users = []
+    for u in user_dicts:
+        user = _parse_user(u)
+        for gid in u['group_ids']:
+            user.groups.append(groups[gid])
+        users.append(user)
+    return users
+
+
+def get_groups() -> List[Group]:
+    config = current_app.config.get(_config_key)
+    data = _request_resource_json(config['server']['admin_groups_api'], _get_access_token())
+    return [_parse_group(g) for g in data]
+
+
+def add_group(name, description=None) -> Group:
+    config = current_app.config.get(_config_key)
+    group_data = {
+        'name': name,
+        'description': description
+    }
+    data = _request_resource_json(config['server']['admin_groups_api'], _get_access_token(), method='post',
+                                  json=group_data)
+    return _parse_group(data)
+
+
+def init_app(app: Flask, config_file: str = 'oauth.config.json', login_callback=None) -> None:
     """
     Initialize OAuth configurations and callbacks in the provided Flask app
     :param app: Your Flask app
     :param config_file: The path to a configuration file for OAuth
+    :param login_callback: (optional) a callback function to call after successful login
     """
+    global _login_callback
     with open(config_file) as f:
         config = json.load(f)
         app.config[_config_key] = config
-    app.add_url_rule(config['client']['callback_path'], None, _oauth_callback)
+    server_config = config['server']
+    client_config = config['client']
+    server_url = server_config['url']
+    app.add_url_rule(client_config['callback_path'], None, _oauth_callback)
+    app.add_url_rule(client_config['profile_path'], 'account_profile',
+                     lambda: redirect(server_url + server_config['profile_page']))
+    app.add_url_rule(client_config['admin_user_path'], 'admin_user',
+                     lambda uid: redirect(server_url + server_config['admin_user_page'].format(uid=uid)))
+    app.add_url_rule(client_config['admin_group_path'], 'admin_group',
+                     lambda gid: redirect(server_url + server_config['admin_group_page'].format(gid=gid)))
+    _login_callback = login_callback
 
 # TODO connect via API? --> avoid infinite loop && CORS issues
 # TODO automatically update access token?
