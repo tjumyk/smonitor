@@ -46,9 +46,6 @@ if cookie_path:
 socket_io = SocketIO(app, async_mode='gevent')
 
 session = requests.session()
-adapter = HTTPAdapter(pool_maxsize=100)
-session.mount('http://', adapter)
-session.mount('https://', adapter)
 
 clients = {}
 clients_lock = threading.Lock()
