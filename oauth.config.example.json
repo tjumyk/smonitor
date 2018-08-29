@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "resolve_real_ip": false,
   "whitelist": [
     "127.0.0.1"
