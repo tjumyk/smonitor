@@ -170,7 +170,7 @@ def self_restart():
 @socket_io.on('connect')
 def socket_connect():
     try:
-        oauth.get_user()  # will return None if OAuth is skipped
+        user = oauth.get_user()  # will return None if OAuth is skipped
     except oauth.OAuthError:
         return False
 
@@ -187,7 +187,7 @@ def socket_connect():
             'short_id': sid[-6:],
             'address': address,
             'hostname': None,
-            'user': request.remote_user,
+            'user': user.to_dict() if user else None,
             'user_agent': user_agent
         }
         clients[sid] = new_client
