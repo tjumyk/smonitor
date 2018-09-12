@@ -1,3 +1,7 @@
+from gevent import monkey
+
+monkey.patch_all()
+
 import base64
 import gzip
 import json
@@ -10,8 +14,6 @@ import requests
 from cryptography.fernet import Fernet, InvalidToken
 from flask import Flask, jsonify, request, Response
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from gevent import monkey
-from requests.adapters import HTTPAdapter
 
 import collector
 import loggers
@@ -20,8 +22,6 @@ import repository
 from oauth import requires_login
 
 logger = loggers.get_logger(__name__)
-
-monkey.patch_all()
 
 config = None
 if os.path.isfile('config.json'):
