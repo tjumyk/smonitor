@@ -1,7 +1,7 @@
 <div class="ui container">
     <div class="user-info" ng-if="config.user">
-        <a ng-href="{{config.user.links.profile}}" target="_blank">
-            <img ng-src="{{config.user.avatar}}" class="ui avatar image" ng-if="config.user.avatar">
+        <a ng-href="account/profile" target="_blank">
+            <img ng-src="{{config.user.avatar}}?size=64" class="ui avatar image" ng-if="config.user.avatar">
             <i class="icon user circle" ng-if="!config.user.avatar"></i>
             {{config.user.nickname || config.user.name}}
         </a>
