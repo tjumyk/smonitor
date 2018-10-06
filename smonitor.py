@@ -160,7 +160,7 @@ def self_update():
 
 
 @app.route('/api/self_restart')
-@requires_login
+#@requires_login
 def self_restart():
     logger.info('[Self Restart] Started')
     socket_io.start_background_task(target=_restart)
