@@ -367,7 +367,8 @@
         config.site_title = config.site_name + ' \u00B7 System Monitor';
         $scope.loading_websocket = true;
         socket = io({
-          path: window.location.pathname + 'socket.io'
+          path: window.location.pathname + 'socket.io',
+          reconnectionAttempts: 10
         });
         socket.on('connect', function() {
           return $timeout(function() {
@@ -397,26 +398,30 @@
           });
         });
         socket.on('reconnect', function() {
-          $('.reconnect.dimmer').dimmer('hide');
+          return $('.reconnect.dimmer').dimmer('hide');
+        });
+        socket.on('reconnect_attempt', function() {
+          $('.reconnect.dimmer').dimmer({
+            'closable': false
+          }).dimmer('set page dimmer', true).dimmer('show');
           return $http.get('api/config').then(function(response) {
             if (!angular.equals(raw_config, response.data)) {
               return window.location.reload();
             }
           }, function(response) {
-            if (response.status === 401 && response.data.redirect_url) {
-              window.location.href = response.data.redirect_url;
-              return;
-            }
-            console.error(response);
-            if (response.data.error) {
-              return alert(response.data.error);
+            if (response.data) {
+              if (response.status === 401 && response.data.redirect_url) {
+                window.location.href = response.data.redirect_url;
+                return;
+              }
+              if (response.data.error) {
+                return alert(response.data.error);
+              }
             }
           });
         });
-        socket.on('reconnect_attempt', function() {
-          return $('.reconnect.dimmer').dimmer({
-            'closable': false
-          }).dimmer('set page dimmer', true).dimmer('show');
+        socket.on('reconnect_failed', function() {
+          return $scope.reconnect_failed = true;
         });
         socket.on('clients', function(clients) {
           var client, id, total, ua, ua_str;

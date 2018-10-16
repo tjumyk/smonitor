@@ -1,6 +1,11 @@
 <div class="ui reconnect dimmer">
     <div class="content">
-        <div class="ui text loader">Reconnecting...</div>
+        <div class="ui text loader" ng-if="!reconnect_failed">Reconnecting...</div>
+        <div class="ui inverted icon header" ng-if="reconnect_failed">
+            <i class="icon times circle"></i>
+            Connection Lost
+            <div class="sub header">Please try to refresh later</div>
+        </div>
     </div>
 </div>
 <div class="app-footer">

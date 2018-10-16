@@ -249,6 +249,7 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
     $scope.loading_websocket = true
     socket = io({
       path: window.location.pathname + 'socket.io'
+      reconnectionAttempts: 10
     })
     socket.on 'connect', ->
       $timeout ->
@@ -269,20 +270,22 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
         $scope.ping = latency
     socket.on 'reconnect', ->
       $('.reconnect.dimmer').dimmer('hide')
-      $http.get('api/config').then (response)->
-        if not angular.equals(raw_config, response.data)
-          window.location.reload()
-      , (response)->
-        if response.status == 401 and response.data.redirect_url # oauth redirect
-          window.location.href = response.data.redirect_url
-          return
-        console.error(response)
-        if response.data.error
-          alert(response.data.error)
     socket.on 'reconnect_attempt', ->
       $('.reconnect.dimmer').dimmer({
         'closable': false
       }).dimmer('set page dimmer', true).dimmer('show')
+      $http.get('api/config').then (response)->
+        if not angular.equals(raw_config, response.data)
+          window.location.reload()
+      , (response)->
+        if response.data
+          if response.status == 401 and response.data.redirect_url # oauth redirect
+            window.location.href = response.data.redirect_url
+            return
+          if response.data.error
+            alert(response.data.error)
+    socket.on 'reconnect_failed', ->
+      $scope.reconnect_failed = true
     socket.on 'clients', (clients)->
       $scope.clients = clients
       total = 0
