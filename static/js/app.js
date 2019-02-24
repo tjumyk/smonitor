@@ -667,7 +667,9 @@
           return;
         }
         $timeout(function() {
-          return $('.host-switch').dropdown();
+          return $('.host-switch').dropdown({
+            action: 'hide'
+          });
         });
         socket.on('reconnect', enable_current_view);
         return enable_current_view();

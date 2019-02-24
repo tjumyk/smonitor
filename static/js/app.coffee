@@ -440,7 +440,8 @@ app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams',
       $location.path('/404').replace()
       return
     $timeout ->
-      $('.host-switch').dropdown()
+      $('.host-switch').dropdown
+        action: 'hide'
     socket.on('reconnect', enable_current_view)
     enable_current_view()
 
