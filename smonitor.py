@@ -21,8 +21,6 @@ import oauth
 import repository
 from oauth import requires_login
 
-LOCAL_FULL_STATUS_ROOM_ID = 'full_status'
-
 logger = loggers.get_logger(__name__)
 
 config = None
@@ -225,8 +223,8 @@ def socket_enable_full_status(host):
         subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
         logger.info('[Subscribe Full Status] ID=%s, Host=%s, TotalSubscribers=%d' % (request.sid, host, subscribers))
     else:
-        join_room(LOCAL_FULL_STATUS_ROOM_ID)
-        subscribers = len(socket_io.server.manager.rooms['/'].get(LOCAL_FULL_STATUS_ROOM_ID) or ())
+        join_room('local')
+        subscribers = len(socket_io.server.manager.rooms['/'].get('local') or ())
         logger.info('[Subscribe Full Status] ID=%s, TotalSubscribers=%d' % (request.sid, subscribers))
 
 
@@ -238,8 +236,8 @@ def socket_disable_full_status(host):
         logger.info('[Unsubscribe Full Status] ID=%s, Host=%s, TotalSubscribers=%d' %
                     (request.sid, host, subscribers))
     else:
-        leave_room(LOCAL_FULL_STATUS_ROOM_ID)
-        subscribers = len(socket_io.server.manager.rooms['/'].get(LOCAL_FULL_STATUS_ROOM_ID) or ())
+        leave_room('local')
+        subscribers = len(socket_io.server.manager.rooms['/'].get('local') or ())
         logger.info('[Unsubscribe Full Status] ID=%s, TotalSubscribers=%d' %
                     (request.sid, subscribers))
 
@@ -323,10 +321,10 @@ def _status_worker():
             _collect_remote_status(host_retry, request_timeout, batch_timeout)
         else:
             rooms = socket_io.server.manager.rooms.get('/')
-            if rooms and rooms.get(LOCAL_FULL_STATUS_ROOM_ID):
+            if rooms and rooms.get('local'):
                 full_status = collector.get_full_status()
                 socket_io.emit('status', full_status['basic'])
-                socket_io.emit('full_status', full_status['full'], room=LOCAL_FULL_STATUS_ROOM_ID)
+                socket_io.emit('full_status', full_status['full'], room='local')
             else:
                 socket_io.emit('status', collector.get_status())
         elapsed_time = time.time() - start_time
