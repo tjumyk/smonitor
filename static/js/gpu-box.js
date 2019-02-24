@@ -73,10 +73,6 @@
               ],
               yAxes: [
                 {
-                  gridLines: {
-                    display: true,
-                    color: 'rgba(0, 0, 0, 0.5)'
-                  },
                   ticks: {
                     suggestedMin: 0,
                     suggestedMax: 100
