@@ -163,7 +163,7 @@
                 My GPU
             </div>
         </div>
-        <div class="ui stackable one column grid" ng-show="host.info.gpu">
+        <div class="ui stackable one column grid" ng-show="host.personal_status.gpu">
             <div class="column" ng-repeat="(index, gpu) in host.personal_status.gpu.devices">
                 <div gpu-box
                      show-chart="true"
@@ -178,7 +178,7 @@
             <i class="terminal icon"></i>
             <div class="content">My Process</div>
         </div>
-        <div class="table-responsive" ng-show="host.personal_status">
+        <div class="table-responsive" ng-show="host.personal_status.top_processes">
             <table class="ui celled unstackable very compact single line sortable table">
                 <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th>Status</th><th class="sorted descending">CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
                 <tbody>
