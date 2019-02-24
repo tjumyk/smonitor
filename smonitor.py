@@ -21,6 +21,8 @@ import oauth
 import repository
 from oauth import requires_login
 
+LOCAL_FULL_STATUS_ROOM_ID = 'full_status'
+
 logger = loggers.get_logger(__name__)
 
 config = None
@@ -53,7 +55,6 @@ worker_thread = None
 worker_thread_lock = threading.Lock()
 
 host_info = {}
-enabled_full_status = False
 
 _crypt = Fernet(base64.urlsafe_b64encode(config['security']['secret'].encode('utf-8')))
 
@@ -219,25 +220,28 @@ def socket_disconnect():
 
 @socket_io.on('enable_full_status')
 def socket_enable_full_status(host):
-    global enabled_full_status
     if config['monitor']['mode'] == 'app':
         join_room(host)
         subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
         logger.info('[Subscribe Full Status] ID=%s, Host=%s, TotalSubscribers=%d' % (request.sid, host, subscribers))
     else:
-        enabled_full_status = True
+        join_room(LOCAL_FULL_STATUS_ROOM_ID)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(LOCAL_FULL_STATUS_ROOM_ID) or ())
+        logger.info('[Subscribe Full Status] ID=%s, TotalSubscribers=%d' % (request.sid, subscribers))
 
 
 @socket_io.on('disable_full_status')
 def socket_disable_full_status(host):
-    global enabled_full_status
     if config['monitor']['mode'] == 'app':
         leave_room(host)
         subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
         logger.info('[Unsubscribe Full Status] ID=%s, Host=%s, TotalSubscribers=%d' %
                     (request.sid, host, subscribers))
     else:
-        enabled_full_status = False
+        leave_room(LOCAL_FULL_STATUS_ROOM_ID)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(LOCAL_FULL_STATUS_ROOM_ID) or ())
+        logger.info('[Unsubscribe Full Status] ID=%s, TotalSubscribers=%d' %
+                    (request.sid, subscribers))
 
 
 @socket_io.on('update')
@@ -318,10 +322,11 @@ def _status_worker():
         if app_mode:
             _collect_remote_status(host_retry, request_timeout, batch_timeout)
         else:
-            if enabled_full_status:
+            rooms = socket_io.server.manager.rooms.get('/')
+            if rooms and rooms.get(LOCAL_FULL_STATUS_ROOM_ID):
                 full_status = collector.get_full_status()
                 socket_io.emit('status', full_status['basic'])
-                socket_io.emit('full_status', full_status['full'])
+                socket_io.emit('full_status', full_status['full'], room=LOCAL_FULL_STATUS_ROOM_ID)
             else:
                 socket_io.emit('status', collector.get_status())
         elapsed_time = time.time() - start_time
