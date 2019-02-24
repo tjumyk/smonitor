@@ -15,18 +15,39 @@
             </div>
         </h1>
     </div>
-    <div class="ui breadcrumb">
-        <a class="section" href="#!/"><i class="ui home icon"></i></a>
-        <i class="right angle icon divider"></i>
-        <div class="section">
-            <div class="ui pointing host-switch dropdown">
-                <div class="text"><i class="ui server icon"></i>{{host_group.name}}</div>
-                <div class="menu">
-                    <div class="dropdown item" ng-repeat="g in config.host_groups" ng-class="{'active': g==host_group}">
-                        <i class="dropdown icon"></i>
-                        <i class="ui server icon"></i> {{g.name}}
+    <div class="ui one column grid">
+        <div class="column">
+            <div class="ui breadcrumb">
+                <a class="section" href="#!/"><i class="ui home icon"></i></a>
+                <i class="right angle icon divider"></i>
+                <div class="section">
+                    <div class="ui pointing host-switch dropdown">
+                        <div class="text"><i class="ui server icon"></i>{{host_group.name}}</div>
                         <div class="menu">
-                            <a class="item" ng-repeat="h in g.hosts" ng-class="{'active': h==host}" ng-href="#!/hosts/{{h.name}}">
+                            <div class="dropdown item" ng-repeat="g in config.host_groups" ng-class="{'active': g==host_group}">
+                                <i class="dropdown icon"></i>
+                                <i class="ui server icon"></i> {{g.name}}
+                                <div class="menu">
+                                    <a class="item" ng-repeat="h in g.hosts" ng-class="{'active': h==host}" ng-href="#!/hosts/{{h.name}}">
+                                        <i class="ui desktop icon"></i>
+                                        <div class="percent-bar inline">
+                                            <div class="label">{{h.name}}</div>
+                                            <div class="bar">
+                                                <div class="inner" ng-style="{'width': h.status.cpu.percent+'%'}"></div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <i class="right angle icon divider"></i>
+                <div class="section">
+                    <div class="ui pointing host-switch dropdown">
+                        <div class="text"><i class="ui desktop icon"></i>{{host.name}}</div>
+                        <div class="menu">
+                            <a class="item" ng-repeat="h in host_group.hosts" ng-class="{'active': h==host}" ng-href="#!/hosts/{{h.name}}">
                                 <i class="ui desktop icon"></i>
                                 <div class="percent-bar inline">
                                     <div class="label">{{h.name}}</div>
@@ -39,29 +60,22 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <i class="right angle icon divider"></i>
-        <div class="section">
-            <div class="ui pointing host-switch dropdown">
-                <div class="text"><i class="ui desktop icon"></i>{{host.name}}</div>
-                <div class="menu">
-                    <a class="item" ng-repeat="h in host_group.hosts" ng-class="{'active': h==host}" ng-href="#!/hosts/{{h.name}}">
-                        <i class="ui desktop icon"></i>
-                        <div class="percent-bar inline">
-                            <div class="label">{{h.name}}</div>
-                            <div class="bar">
-                                <div class="inner" ng-style="{'width': h.status.cpu.percent+'%'}"></div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <div class="ui right floated buttons small compact icon">
+                <button class="ui button" ng-class="{'active green': !enable_personal_view}" ng-click="enable_personal_view=false">
+                    <i class="icon globe"></i>
+                    Global
+                </button>
+                <button class="ui button" ng-class="{'active blue': enable_personal_view}" ng-click="enable_personal_view=true">
+                    <i class="icon user outline"></i>
+                    Personal
+                </button>
             </div>
         </div>
     </div>
-    <div ng-show="host.info.error || host.status.error || host.full_status.error" class="ui negative message">
+    <div ng-show="host.info.error || host.status.error || host.full_status.error || host.personal_status.error" class="ui negative message">
         <div class="header">
             <i class="times circle icon"></i>
-            <span>{{host.info.error.message || host.status.error.message || host.full_status.error.message}}</span>
+            <span>{{host.info.error.message || host.status.error.message || host.full_status.error.message || host.personal_status.error.message}}</span>
         </div>
     </div>
     <div ng-show="host.update_result" class="ui message" ng-class="{'negative': host.update_result.error, 'positive': host.update_result.success}">
@@ -76,6 +90,8 @@
         </div>
         <p ng-show="host.update_result.error">{{host.update_result.error.message}}</p>
     </div>
+
+    <!-- Start of Host Information -->
     <div class="ui header">
         <i class="desktop icon"></i>
         <div class="content">Host Information</div>
@@ -137,418 +153,323 @@
             </div>
         </div>
     </div>
-    <div class="ui header">
-        <i class="heartbeat icon"></i>
-        <div class="content">CPU</div>
-    </div>
-    <div class="ui segment">
-        <div class="ui horizontal list">
-            <div class="item">
-                <i class="ticket icon"></i>
-                <div class="content">
-                    <div class="header">Brand</div>
-                    {{host.info.cpu.brand}}
+    <!-- End of Host Information -->
+
+    <!-- Start of Personal View -->
+    <div ng-if="enable_personal_view">
+        <div class="ui header" ng-show="host.personal_status.gpu">
+            <i class="fire icon"></i>
+            <div class="content">
+                My GPU
+            </div>
+        </div>
+        <div class="ui stackable one column grid" ng-show="host.info.gpu">
+            <div class="column" ng-repeat="(index, gpu) in host.personal_status.gpu.devices">
+                <div gpu-box
+                     show-chart="true"
+                     host="host"
+                     info="host.info.gpu.devices[index]"
+                     status="host.status.gpu.devices[index]"
+                     full-status="gpu"></div>
+            </div>
+        </div>
+
+        <div class="ui header" ng-show="host.personal_status.top_processes">
+            <i class="terminal icon"></i>
+            <div class="content">My Process</div>
+        </div>
+        <div class="table-responsive" ng-show="host.personal_status">
+            <table class="ui celled unstackable very compact single line sortable table">
+                <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th>Status</th><th class="sorted descending">CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                <tbody>
+                <tr ng-repeat="p in host.personal_status.top_processes">
+                    <td>{{p.pid}}</td>
+                    <td>{{p.ppid}}</td>
+                    <td>{{p.username}}</td>
+                    <td>{{p.memory_info.vms_h}}</td>
+                    <td>{{p.memory_info.rss_h}}</td>
+                    <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
+                    <td>{{p.status}}</td>
+                    <td>{{p.cpu_percent}}</td>
+                    <td>{{p.memory_percent}}</td>
+                    <td>{{p.cpu_times.total_h}}</td>
+                    <td>{{p.cmdline_h}}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div> <!-- End of Personal View -->
+
+    <!-- Start of Global View -->
+    <div ng-if="!enable_personal_view">
+        <div class="ui header">
+            <i class="heartbeat icon"></i>
+            <div class="content">CPU</div>
+        </div>
+        <div class="ui segment">
+            <div class="ui horizontal list">
+                <div class="item">
+                    <i class="ticket icon"></i>
+                    <div class="content">
+                        <div class="header">Brand</div>
+                        {{host.info.cpu.brand}}
+                    </div>
+                </div>
+                <div class="item">
+                    <i class="th large icon"></i>
+                    <div class="content">
+                        <div class="header">Amount</div>
+                        {{host.info.cpu.cores}} Cores ({{host.info.cpu.count}} Threads)
+                    </div>
+                </div>
+                <div class="item">
+                    <i class="percent icon"></i>
+                    <div class="content">
+                        <div class="header">Overall Utilization</div>
+                        {{host.status.cpu.percent_h}}
+                    </div>
                 </div>
             </div>
-            <div class="item">
-                <i class="th large icon"></i>
-                <div class="content">
-                    <div class="header">Amount</div>
-                    {{host.info.cpu.cores}} Cores ({{host.info.cpu.count}} Threads)
+            <div ng-show="host.full_status">
+                <div class="ui divider"></div>
+                <div class="ui doubling four column grid cpu-bars">
+                    <div ng-repeat="p in host.full_status.cpu.percents track by $index" class="column">
+                        <div class="percent-bar">
+                            <div class="label">CPU <span ng-show="$index<10 && host.full_status.cpu.percents.length>10">0</span>{{$index}}</div>
+                            <div class="bar">
+                                <div class="inner" ng-style="{'width': p+'%'}"></div>
+                            </div>
+                            <div class="number">{{p}}%</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="item">
-                <i class="percent icon"></i>
-                <div class="content">
-                    <div class="header">Overall Utilization</div>
-                    {{host.status.cpu.percent_h}}
+                <div class="ui divider"></div>
+                <div class="table-responsive">
+                    <table class="ui celled unstackable very compact single line sortable table">
+                        <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th>Status</th><th class="sorted descending">CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                        <tbody>
+                        <tr ng-repeat="p in host.full_status.cpu.top_processes">
+                            <td>{{p.pid}}</td>
+                            <td>{{p.ppid}}</td>
+                            <td>{{p.username}}</td>
+                            <td>{{p.memory_info.vms_h}}</td>
+                            <td>{{p.memory_info.rss_h}}</td>
+                            <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
+                            <td>{{p.status}}</td>
+                            <td>{{p.cpu_percent}}</td>
+                            <td>{{p.memory_percent}}</td>
+                            <td>{{p.cpu_times.total_h}}</td>
+                            <td>{{p.cmdline_h}}</td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-        <div ng-show="host.full_status">
-            <div class="ui divider"></div>
-            <div class="ui doubling four column grid cpu-bars">
-                <div ng-repeat="p in host.full_status.cpu.percents track by $index" class="column">
-                    <div class="percent-bar">
-                        <div class="label">CPU <span ng-show="$index<10 && host.full_status.cpu.percents.length>10">0</span>{{$index}}</div>
-                        <div class="bar">
-                            <div class="inner" ng-style="{'width': p+'%'}"></div>
-                        </div>
-                        <div class="number">{{p}}%</div>
-                    </div>
-                </div>
-            </div>
-            <div class="ui divider"></div>
-            <div class="table-responsive">
-                <table class="ui celled unstackable very compact single line sortable table">
-                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th>Status</th><th class="sorted descending">CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
-                    <tbody>
-                    <tr ng-repeat="p in host.full_status.cpu.top_processes">
-                        <td>{{p.pid}}</td>
-                        <td>{{p.ppid}}</td>
-                        <td>{{p.username}}</td>
-                        <td>{{p.memory_info.vms_h}}</td>
-                        <td>{{p.memory_info.rss_h}}</td>
-                        <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
-                        <td>{{p.status}}</td>
-                        <td>{{p.cpu_percent}}</td>
-                        <td>{{p.memory_percent}}</td>
-                        <td>{{p.cpu_times.total_h}}</td>
-                        <td>{{p.cmdline_h}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="ui header">
+            <i class="microchip icon"></i>
+            <div class="content">Memory</div>
         </div>
-    </div>
-    <div class="ui header">
-        <i class="microchip icon"></i>
-        <div class="content">Memory</div>
-    </div>
-    <div class="ui segment">
-        <div class="ui horizontal list">
-            <div class="item">
-                <i class="circle icon"></i>
-                <div class="content">
-                    <div class="header">Memory Size</div>
-                    {{host.info.memory.total_h}}
-                </div>
-            </div>
-            <div class="item">
-                <i class="circle outline icon"></i>
-                <div class="content">
-                    <div class="header">Memory Available</div>
-                    {{host.full_status.memory.available_h}}
-                </div>
-            </div>
-            <div class="item">
-                <i class="percent icon"></i>
-                <div class="content">
-                    <div class="header">Memory Utilization</div>
-                    {{host.status.memory.percent_h}}
-                </div>
-            </div>
-            <div class="item">
-                <i class="circle icon"></i>
-                <div class="content">
-                    <div class="header">Swap Size</div>
-                    {{host.info.swap.total_h}}
-                </div>
-            </div>
-            <div class="item">
-                <i class="circle outline icon"></i>
-                <div class="content">
-                    <div class="header">Swap Free</div>
-                    {{host.full_status.swap.free_h}}
-                </div>
-            </div>
-            <div class="item">
-                <i class="percent icon"></i>
-                <div class="content">
-                    <div class="header">Swap Utilization</div>
-                    {{host.full_status.swap.percent_h}}
-                </div>
-            </div>
-        </div>
-        <div ng-show="host.full_status">
-            <div class="ui divider"></div>
-            <div class="multi-percent-bar">
-                <div class="inner mem-used" ng-style="{'width': host.full_status.memory.used_percent + '%'}"></div>
-                <div class="inner mem-buffers" ng-show="host.full_status.memory.buffers!=undefined" ng-style="{'width': host.full_status.memory.buffers_percent + '%', 'left': host.full_status.memory.buffers_offset + '%'}"></div>
-                <div class="inner mem-cached" ng-show="host.full_status.memory.cached!=undefined" ng-style="{'width': host.full_status.memory.cached_percent + '%', 'left': host.full_status.memory.cached_offset + '%'}"></div>
-            </div>
-            <div class="legend">
-                <div class="items">
-                    <div class="item">
-                        <i class="color-block mem-used"></i>
-                        <span class="header">Used</span>
-                        {{host.full_status.memory.used_h}}
-                    </div>
-                    <div class="item" ng-show="host.full_status.memory.buffers!=undefined">
-                        <i class="color-block mem-buffers"></i>
-                        <span class="header">Buffers</span>
-                        {{host.full_status.memory.buffers_h}}
-                    </div>
-                    <div class="item" ng-show="host.full_status.memory.cached!=undefined">
-                        <i class="color-block mem-cached"></i>
-                        <span class="header">Cached</span>
-                        {{host.full_status.memory.cached_h}}
-                    </div>
-                    <div class="item">
-                        <i class="color-block"></i>
-                        <span class="header">Free</span>
-                        {{host.full_status.memory.free_h}}
+        <div class="ui segment">
+            <div class="ui horizontal list">
+                <div class="item">
+                    <i class="circle icon"></i>
+                    <div class="content">
+                        <div class="header">Memory Size</div>
+                        {{host.info.memory.total_h}}
                     </div>
                 </div>
-                <div class="header">Memory Usage</div>
+                <div class="item">
+                    <i class="circle outline icon"></i>
+                    <div class="content">
+                        <div class="header">Memory Available</div>
+                        {{host.full_status.memory.available_h}}
+                    </div>
+                </div>
+                <div class="item">
+                    <i class="percent icon"></i>
+                    <div class="content">
+                        <div class="header">Memory Utilization</div>
+                        {{host.status.memory.percent_h}}
+                    </div>
+                </div>
+                <div class="item">
+                    <i class="circle icon"></i>
+                    <div class="content">
+                        <div class="header">Swap Size</div>
+                        {{host.info.swap.total_h}}
+                    </div>
+                </div>
+                <div class="item">
+                    <i class="circle outline icon"></i>
+                    <div class="content">
+                        <div class="header">Swap Free</div>
+                        {{host.full_status.swap.free_h}}
+                    </div>
+                </div>
+                <div class="item">
+                    <i class="percent icon"></i>
+                    <div class="content">
+                        <div class="header">Swap Utilization</div>
+                        {{host.full_status.swap.percent_h}}
+                    </div>
+                </div>
             </div>
-            <div class="ui divider"></div>
-            <div class="table-responsive">
-                <table class="ui celled unstackable very compact single line sortable table">
-                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th>Status</th><th>CPU%</th><th class="sorted descending">Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
-                    <tbody>
-                    <tr ng-repeat="p in host.full_status.memory.top_processes">
-                        <td>{{p.pid}}</td>
-                        <td>{{p.ppid}}</td>
-                        <td>{{p.username}}</td>
-                        <td>{{p.memory_info.vms_h}}</td>
-                        <td>{{p.memory_info.rss_h}}</td>
-                        <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
-                        <td>{{p.status}}</td>
-                        <td>{{p.cpu_percent}}</td>
-                        <td>{{p.memory_percent}}</td>
-                        <td>{{p.cpu_times.total_h}}</td>
-                        <td>{{p.cmdline_h}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    <div class="ui header">
-        <i class="hdd icon"></i>
-        <div class="content">Disk</div>
-    </div>
-    <div class="ui doubling two column grid">
-        <div ng-repeat="partition in host.info.disk.partitions" class="column">
-            <div class="ui segment">
-                <div class="ui horizontal list">
-                    <div class="item">
-                        <i class="hdd outline icon"></i>
-                        <div class="content">
-                            <div class="header">Device</div>
-                            {{partition.name}}
+            <div ng-show="host.full_status">
+                <div class="ui divider"></div>
+                <div class="multi-percent-bar">
+                    <div class="inner mem-used" ng-style="{'width': host.full_status.memory.used_percent + '%'}"></div>
+                    <div class="inner mem-buffers" ng-show="host.full_status.memory.buffers!=undefined" ng-style="{'width': host.full_status.memory.buffers_percent + '%', 'left': host.full_status.memory.buffers_offset + '%'}"></div>
+                    <div class="inner mem-cached" ng-show="host.full_status.memory.cached!=undefined" ng-style="{'width': host.full_status.memory.cached_percent + '%', 'left': host.full_status.memory.cached_offset + '%'}"></div>
+                </div>
+                <div class="legend">
+                    <div class="items">
+                        <div class="item">
+                            <i class="color-block mem-used"></i>
+                            <span class="header">Used</span>
+                            {{host.full_status.memory.used_h}}
+                        </div>
+                        <div class="item" ng-show="host.full_status.memory.buffers!=undefined">
+                            <i class="color-block mem-buffers"></i>
+                            <span class="header">Buffers</span>
+                            {{host.full_status.memory.buffers_h}}
+                        </div>
+                        <div class="item" ng-show="host.full_status.memory.cached!=undefined">
+                            <i class="color-block mem-cached"></i>
+                            <span class="header">Cached</span>
+                            {{host.full_status.memory.cached_h}}
+                        </div>
+                        <div class="item">
+                            <i class="color-block"></i>
+                            <span class="header">Free</span>
+                            {{host.full_status.memory.free_h}}
                         </div>
                     </div>
-                    <div class="item">
-                        <i class="copy outline icon"></i>
-                        <div class="content">
-                            <div class="header">File System</div>
-                            {{partition.fstype}}
-                        </div>
-                    </div>
-                    <div class="item">
-                        <i class="folder open outline icon"></i>
-                        <div class="content">
-                            <div class="header">Mount Points</div>
-                            {{partition.mount_points.join(', ')}}
-                        </div>
-                    </div>
-                    <div class="item">
-                        <i class="circle icon"></i>
-                        <div class="content">
-                            <div class="header">Size</div>
-                            {{partition.total_h}}
-                        </div>
-                    </div>
+                    <div class="header">Memory Usage</div>
                 </div>
-                <div ng-show="host.full_status.disk.partitions">
-                    <div class="ui divider"></div>
-                    <div class="percent-bar">
-                        <div class="bar">
-                            <div class="inner" ng-style="{'width': host.full_status.disk.partitions[partition.name].percent+'%'}"></div>
-                        </div>
-                        <div class="number">{{host.full_status.disk.partitions[partition.name].percent}}%</div>
-                    </div>
-                    <div class="legend">
-                        <div class="items">
-                            <div class="item">
-                                <i class="color-block disk-used"></i>
-                                <span class="header">Used</span>
-                                {{host.full_status.disk.partitions[partition.name].used_h}}
-                            </div>
-                            <div class="item">
-                                <i class="color-block"></i>
-                                <span class="header">Free</span>
-                                {{host.full_status.disk.partitions[partition.name].free_h}}
-                            </div>
-                        </div>
-                    </div>
+                <div class="ui divider"></div>
+                <div class="table-responsive">
+                    <table class="ui celled unstackable very compact single line sortable table">
+                        <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th>Status</th><th>CPU%</th><th class="sorted descending">Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                        <tbody>
+                        <tr ng-repeat="p in host.full_status.memory.top_processes">
+                            <td>{{p.pid}}</td>
+                            <td>{{p.ppid}}</td>
+                            <td>{{p.username}}</td>
+                            <td>{{p.memory_info.vms_h}}</td>
+                            <td>{{p.memory_info.rss_h}}</td>
+                            <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
+                            <td>{{p.status}}</td>
+                            <td>{{p.cpu_percent}}</td>
+                            <td>{{p.memory_percent}}</td>
+                            <td>{{p.cpu_times.total_h}}</td>
+                            <td>{{p.cmdline_h}}</td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="ui header" ng-show="host.info.gpu">
-        <i class="fire icon"></i>
-        <div class="content">
-            GPU
-            <div class="sub header" ng-show="host.info.gpu">
-                Driver: {{host.info.gpu.driver}} &nbsp; NVML: {{host.info.gpu.nvml}}
-            </div>
+        <div class="ui header">
+            <i class="hdd icon"></i>
+            <div class="content">Disk</div>
         </div>
-    </div>
-    <div class="ui stackable two column grid" ng-show="host.info.gpu">
-        <div class="column" ng-repeat="gpu in host.info.gpu.devices">
-            <div class="ui fluid card">
-                <div class="content">
-                    <div class="header">
-                        <div class="right floated">{{gpu.name}}</div>
-                        <div class="ui label" ng-class="{'green': host.status.gpu.devices[gpu.index].processes>0}">
-                            GPU {{gpu.index}}
-                        </div>
-                    </div>
-                </div>
-                <div class="content">
-                    <div class="ui two column grid">
-                        <div class="column" ng-hide="host.status.gpu.devices[gpu.index].utilization.gpu==0 && host.status.gpu.devices[gpu.index].utilization.memory==0 && host.full_status.gpu.devices[gpu.index].memory.used<=gpu_memory_idle_threshold">
-                            <div>
-                                <i class="heartbeat icon"></i>
-                                GPU Utilization
-                                <div class="percent-bar">
-                                    <div class="label"><i class="icon"></i></div>
-                                    <div class="bar">
-                                        <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].utilization.gpu+'%'}"></div>
-                                    </div>
-                                    <div class="number">{{host.status.gpu.devices[gpu.index].utilization.gpu}}%</div>
-                                </div>
-                            </div>
-                            <div>
-                                <i class="exchange icon"></i>
-                                Memory Bandwidth Utilization
-                                <div class="percent-bar">
-                                    <div class="label"><i class="icon"></i></div>
-                                    <div class="bar">
-                                        <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].utilization.memory+'%'}"></div>
-                                    </div>
-                                    <div class="number">{{host.status.gpu.devices[gpu.index].utilization.memory}}%</div>
-                                </div>
-                            </div>
-                            <div>
-                                <i class="microchip icon"></i>
-                                Memory Utilization
-                                <div class="percent-bar">
-                                    <div class="label"><i class="icon"></i></div>
-                                    <div class="bar">
-                                        <div class="inner" ng-style="{'width': host.status.gpu.devices[gpu.index].memory.percent+'%'}"></div>
-                                    </div>
-                                    <div class="number">{{host.status.gpu.devices[gpu.index].memory.percent}}%</div>
-                                </div>
-                                <div class="legend">
-                                    <div class="items">
-                                        <div class="item">
-                                            <i class="color-block disk-used"></i>
-                                            <span class="header">Used</span>
-                                            {{host.full_status.gpu.devices[gpu.index].memory.used_h}}
-                                        </div>
-                                        <div class="item">
-                                            <i class="color-block"></i>
-                                            <span class="header">Free</span>
-                                            {{host.full_status.gpu.devices[gpu.index].memory.free_h}}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="centered-text">
-                                    <b>Total</b> {{gpu.memory.total_h}}
-                                </div>
+        <div class="ui doubling two column grid">
+            <div ng-repeat="partition in host.info.disk.partitions" class="column">
+                <div class="ui segment">
+                    <div class="ui horizontal list">
+                        <div class="item">
+                            <i class="hdd outline icon"></i>
+                            <div class="content">
+                                <div class="header">Device</div>
+                                {{partition.name}}
                             </div>
                         </div>
-                        <div class="column" ng-show="host.status.gpu.devices[gpu.index].utilization.gpu==0 && host.status.gpu.devices[gpu.index].utilization.memory==0 && host.full_status.gpu.devices[gpu.index].memory.used<=gpu_memory_idle_threshold">
-                            <div class="vertical-center">
-                                <div class="inner">
-                                    <h3 class="ui center aligned icon header">
-                                        <i class="disabled circular coffee icon"></i>
-                                        <div class="content">
-                                            <div class="muted-text">Idle</div>
-                                        </div>
-                                    </h3>
-                                </div>
+                        <div class="item">
+                            <i class="copy outline icon"></i>
+                            <div class="content">
+                                <div class="header">File System</div>
+                                {{partition.fstype}}
                             </div>
                         </div>
-                        <div class="column">
-                            <div class="ui inverted dimmer" ng-class="{'active': host.full_status.gpu.devices[gpu.index]==undefined}">
-                                <div class="ui loader"></div>
+                        <div class="item">
+                            <i class="folder open outline icon"></i>
+                            <div class="content">
+                                <div class="header">Mount Points</div>
+                                {{partition.mount_points.join(', ')}}
                             </div>
-                            <div ng-show="host.full_status.gpu.devices[gpu.index].fan_speed!==undefined">
-                                <i class="asterisk icon"></i>
-                                Fan Speed
-                                <div class="percent-bar">
-                                    <div class="label"><i class="icon"></i></div>
-                                    <div class="bar">
-                                        <div class="inner-secondary" ng-style="{'width': host.full_status.gpu.devices[gpu.index].fan_speed+'%'}"></div>
-                                    </div>
-                                    <div class="number">{{host.full_status.gpu.devices[gpu.index].fan_speed}}%</div>
-                                </div>
-                            </div>
-                            <div ng-show="host.full_status.gpu.devices[gpu.index].temperature!==undefined">
-                                <i class="thermometer icon"></i>
-                                Temperature
-                                <div class="percent-bar">
-                                    <div class="label"><i class="icon"></i></div>
-                                    <div class="bar">
-                                        <div class="inner-secondary" ng-style="{'width': host.full_status.gpu.devices[gpu.index].temperature+'%'}"></div>
-                                    </div>
-                                    <div class="number">{{host.full_status.gpu.devices[gpu.index].temperature}}&deg;C</div>
-                                </div>
-                            </div>
-                            <div ng-show="host.full_status.gpu.devices[gpu.index].power">
-                                <i class="bolt icon"></i>
-                                Power Usage ({{host.full_status.gpu.devices[gpu.index].power.usage_h}} / {{host.full_status.gpu.devices[gpu.index].power.limit_h}})
-                                <div class="percent-bar">
-                                    <div class="label"><i class="icon"></i></div>
-                                    <div class="bar">
-                                        <div class="inner-secondary" ng-style="{'width': host.full_status.gpu.devices[gpu.index].power.percent+'%'}"></div>
-                                    </div>
-                                    <div class="number">{{host.full_status.gpu.devices[gpu.index].power.percent}}%</div>
-                                </div>
-                            </div>
-                            <div ng-show="host.full_status.gpu.devices[gpu.index].performance!==undefined">
-                                <i class="signal icon"></i>
-                                Performance State
-                                <div class="percent-bar">
-                                    <div class="label"><i class="icon"></i></div>
-                                    <div class="bar">
-                                        <div class="inner-secondary" ng-style="{'width': host.full_status.gpu.devices[gpu.index].performance_percent+'%'}"></div>
-                                    </div>
-                                    <div class="number">P{{host.full_status.gpu.devices[gpu.index].performance}}</div>
-                                </div>
+                        </div>
+                        <div class="item">
+                            <i class="circle icon"></i>
+                            <div class="content">
+                                <div class="header">Size</div>
+                                {{partition.total_h}}
                             </div>
                         </div>
                     </div>
-                    <div ng-show="host.full_status.gpu.devices[gpu.index].process_list.length > 0">
+                    <div ng-show="host.full_status.disk.partitions">
                         <div class="ui divider"></div>
-                        <div class="table-responsive">
-                            <table class="ui celled unstackable very compact single line sortable table">
-                                <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th class="sorted descending">GPU Mem</th><th>Status</th><th>CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
-                                <tbody>
-                                <tr ng-repeat="p in host.full_status.gpu.devices[gpu.index].process_list">
-                                    <td>{{p.pid}}</td>
-                                    <td>{{p.ppid}}</td>
-                                    <td>{{p.username}}</td>
-                                    <td>{{p.memory_info.vms_h}}</td>
-                                    <td>{{p.memory_info.rss_h}}</td>
-                                    <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
-                                    <td>{{p.gpu_memory_h}}</td>
-                                    <td>{{p.status}}</td>
-                                    <td>{{p.cpu_percent}}</td>
-                                    <td>{{p.memory_percent}}</td>
-                                    <td>{{p.cpu_times.total_h}}</td>
-                                    <td>{{p.cmdline_h}}</td>
-                                </tr>
-                                </tbody>
-                            </table>
+                        <div class="percent-bar">
+                            <div class="bar">
+                                <div class="inner" ng-style="{'width': host.full_status.disk.partitions[partition.name].percent+'%'}"></div>
+                            </div>
+                            <div class="number">{{host.full_status.disk.partitions[partition.name].percent}}%</div>
+                        </div>
+                        <div class="legend">
+                            <div class="items">
+                                <div class="item">
+                                    <i class="color-block disk-used"></i>
+                                    <span class="header">Used</span>
+                                    {{host.full_status.disk.partitions[partition.name].used_h}}
+                                </div>
+                                <div class="item">
+                                    <i class="color-block"></i>
+                                    <span class="header">Free</span>
+                                    {{host.full_status.disk.partitions[partition.name].free_h}}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="ui header">
-        <i class="users icon"></i>
-        <div class="content">Active Users</div>
-    </div>
-    <div class="table-responsive">
-        <table class="ui celled unstackable very compact single line table">
-            <thead><tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th><th ng-hide="host.info.platform.system=='Windows'">PID</th></tr></thead>
-            <tbody>
-            <tr ng-repeat="user in host.full_status.users">
-                <td>{{user.name}}</td>
-                <td>{{user.terminal}}</td>
-                <td>{{user.host}}</td>
-                <td>{{user.started_h}}</td>
-                <td ng-hide="host.info.platform.system=='Windows'">{{user.pid}}</td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+        <div class="ui header" ng-show="host.info.gpu">
+            <i class="fire icon"></i>
+            <div class="content">
+                GPU
+                <div class="sub header" ng-show="host.info.gpu">
+                    Driver: {{host.info.gpu.driver}} &nbsp; NVML: {{host.info.gpu.nvml}}
+                </div>
+            </div>
+        </div>
+        <div class="ui stackable two column grid" ng-show="host.info.gpu">
+            <div class="column" ng-repeat="gpu in host.info.gpu.devices">
+                <div gpu-box
+                     host="host"
+                     info="gpu"
+                     status="host.status.gpu.devices[gpu.index]"
+                     full-status="host.full_status.gpu.devices[gpu.index]"></div>
+            </div>
+        </div>
+        <div class="ui header">
+            <i class="users icon"></i>
+            <div class="content">Active Users</div>
+        </div>
+        <div class="table-responsive">
+            <table class="ui celled unstackable very compact single line table">
+                <thead><tr><th>User</th><th>Terminal</th><th>From</th><th>Login Time</th><th ng-hide="host.info.platform.system=='Windows'">PID</th></tr></thead>
+                <tbody>
+                <tr ng-repeat="user in host.full_status.users">
+                    <td>{{user.name}}</td>
+                    <td>{{user.terminal}}</td>
+                    <td>{{user.host}}</td>
+                    <td>{{user.started_h}}</td>
+                    <td ng-hide="host.info.platform.system=='Windows'">{{user.pid}}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div> <!-- End of Global View -->
+
     <div app-footer></div>
 </div>

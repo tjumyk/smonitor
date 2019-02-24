@@ -9,6 +9,8 @@ import os
 import socket
 import threading
 import time
+from collections import defaultdict
+from urllib.parse import urlencode
 
 import requests
 from cryptography.fernet import Fernet, InvalidToken
@@ -19,9 +21,12 @@ import collector
 import loggers
 import oauth
 import repository
+import personal
 from oauth import requires_login
 
 logger = loggers.get_logger(__name__)
+
+LOCAL_HOST = 'local'
 
 config = None
 if os.path.isfile('config.json'):
@@ -104,7 +109,7 @@ def get_static_info():
 @app.route('/api/status')
 @requires_login
 def get_status():
-    data = collector.get_status()
+    data = collector.get_status().get('basic')  # pull the 'basic' info
 
     if request.args.get('encrypted'):
         return Response(_encrypt(data), mimetype='application/octet-stream')
@@ -116,7 +121,14 @@ def get_status():
 @app.route('/api/full_status')
 @requires_login
 def get_full_status():
-    data = collector.get_full_status()
+    active_users = set()
+    active_users_value = request.args.get('u')
+    if active_users_value:
+        for uid in active_users_value.split(','):
+            uid = uid.strip()
+            if uid:
+                active_users.add(uid)
+    data = collector.get_status(active_users)
 
     if request.args.get('encrypted'):
         return Response(_encrypt(data), mimetype='application/octet-stream')
@@ -186,6 +198,7 @@ def socket_connect():
             'address': address,
             'hostname': None,
             'user': user.to_dict() if user else None,
+            'user_hosts': personal.get_user_hosts(user.name) if user else {},
             'user_agent': user_agent
         }
         clients[sid] = new_client
@@ -223,8 +236,8 @@ def socket_enable_full_status(host):
         subscribers = len(socket_io.server.manager.rooms['/'].get(host) or ())
         logger.info('[Subscribe Full Status] ID=%s, Host=%s, TotalSubscribers=%d' % (request.sid, host, subscribers))
     else:
-        join_room('local')
-        subscribers = len(socket_io.server.manager.rooms['/'].get('local') or ())
+        join_room(LOCAL_HOST)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(LOCAL_HOST) or ())
         logger.info('[Subscribe Full Status] ID=%s, TotalSubscribers=%d' % (request.sid, subscribers))
 
 
@@ -236,10 +249,62 @@ def socket_disable_full_status(host):
         logger.info('[Unsubscribe Full Status] ID=%s, Host=%s, TotalSubscribers=%d' %
                     (request.sid, host, subscribers))
     else:
-        leave_room('local')
-        subscribers = len(socket_io.server.manager.rooms['/'].get('local') or ())
+        leave_room(LOCAL_HOST)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(LOCAL_HOST) or ())
         logger.info('[Unsubscribe Full Status] ID=%s, TotalSubscribers=%d' %
                     (request.sid, subscribers))
+
+
+@socket_io.on('enable_personal_status')
+def socket_enable_personal_status(host):
+    client = clients[request.sid]
+    if config['monitor']['mode'] == 'app':
+        host_user = client['user_hosts'].get(host)
+        if not host_user:
+            logger.warning('[Subscribe Personal Status Warning] No host user mapping found for: ID=%s, Host=%s)'
+                           % (request.sid, host))
+            return
+        room_id = _get_personal_room(host, host_user)
+        join_room(room_id)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(room_id) or ())
+        logger.info('[Subscribe Personal Status] ID=%s, Host=%s, User=%s, TotalSubscribers=%d'
+                    % (request.sid, host, host_user, subscribers))
+    else:
+        host_user = client['user_hosts'].get(LOCAL_HOST)
+        if not host_user:
+            logger.warning('[Subscribe Personal Status Warning] No host user mapping found for: ID=%s)' % request.sid)
+            return
+        room_id = _get_personal_room(LOCAL_HOST, host_user)
+        join_room(room_id)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(room_id) or ())
+        logger.info('[Subscribe Personal Status] ID=%s, User=%s, TotalSubscribers=%d'
+                    % (request.sid, host_user, subscribers))
+
+
+@socket_io.on('disable_personal_status')
+def socket_disable_personal_status(host):
+    client = clients[request.sid]
+    if config['monitor']['mode'] == 'app':
+        host_user = client['user_hosts'].get(host)
+        if not host_user:
+            logger.warning('[Unsubscribe Personal Status Warning] No host user mapping found for: ID=%s, Host=%s)'
+                           % (request.sid, host))
+            return
+        room_id = _get_personal_room(host, host_user)
+        leave_room(room_id)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(room_id) or ())
+        logger.info('[Unsubscribe Personal Status] ID=%s, Host=%s, User=%s, TotalSubscribers=%d' %
+                    (request.sid, host, host_user, subscribers))
+    else:
+        host_user = client['user_hosts'].get(LOCAL_HOST)
+        if not host_user:
+            logger.warning('[Unsubscribe Personal Status Warning] No host user mapping found for: ID=%s)' % request.sid)
+            return
+        room_id = _get_personal_room(LOCAL_HOST, host_user)
+        leave_room(room_id)
+        subscribers = len(socket_io.server.manager.rooms['/'].get(room_id) or ())
+        logger.info('[Unsubscribe Personal Status] ID=%s, User=%s, TotalSubscribers=%d' %
+                    (request.sid, host_user, subscribers))
 
 
 @socket_io.on('update')
@@ -256,7 +321,7 @@ def socket_update(host_id):
         if host:
             break
     if host:
-        result = _get_remote_data(host, '/api/self_update', (0.2, 30), False)
+        result = _get_remote_data(host, '/api/self_update', None, (0.2, 30), False)
         if result.get('success'):
             if result.get('already_latest'):
                 emit('update_result', {host_id: result})
@@ -321,12 +386,18 @@ def _status_worker():
             _collect_remote_status(host_retry, request_timeout, batch_timeout)
         else:
             rooms = socket_io.server.manager.rooms.get('/')
-            if rooms and rooms.get('local'):
-                full_status = collector.get_full_status()
+            active_users = _get_active_users(rooms, LOCAL_HOST)
+            if active_users:
+                full_status = collector.get_status(active_users)
                 socket_io.emit('status', full_status['basic'])
-                socket_io.emit('full_status', full_status['full'], room='local')
+                _full_status = full_status.get('full')
+                if _full_status:
+                    socket_io.emit('full_status', _full_status, room=LOCAL_HOST)
+                for user, personal_status in full_status.get('personal', {}).items():
+                    room_id = _get_personal_room(LOCAL_HOST, user)
+                    socket_io.emit('personal_status', personal_status, room=room_id)
             else:
-                socket_io.emit('status', collector.get_status())
+                socket_io.emit('status', collector.get_status().get('basic'))
         elapsed_time = time.time() - start_time
         if elapsed_time < interval:
             socket_io.sleep(interval - elapsed_time)
@@ -340,6 +411,7 @@ def _status_worker():
 def _collect_remote_status(host_retry, request_timeout, batch_timeout):
     status_map = {}
     full_status_map = {}
+    personal_status_map = defaultdict(dict)
     info_map = {}
     rooms = socket_io.server.manager.rooms.get('/')
 
@@ -349,24 +421,31 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
             name = host['name']
             retry = host_retry.get(name)
             if retry is None or retry['wait_remain'] <= 0:
-                fetch_full_status = False
-                if rooms is not None and rooms.get(name):
-                    fetch_full_status = True
-                if fetch_full_status:
-                    status = _get_remote_data(host, '/api/full_status', request_timeout, True)
+                active_users = _get_active_users(rooms, name)
+                if active_users:
+                    query_args = {'u': ','.join(active_users)}
+                    status = _get_remote_data(host, '/api/full_status', query_args, request_timeout, True)
                     if 'error' in status:
                         status_map[name] = status
                         full_status_map[name] = status
+                        for user in active_users:
+                            if user == collector.GLOBAL_ACTIVE_USER:
+                                continue
+                            personal_status_map[user][name] = status
                     else:
                         status_map[name] = status['basic']
-                        full_status_map[name] = status['full']
+                        full_status = status.get('full')
+                        if full_status:
+                            full_status_map[name] = full_status
+                        for user, personal_status in status.get('personal', {}).items():
+                            personal_status_map[user][name] = personal_status
                 else:
-                    status = _get_remote_data(host, '/api/status', request_timeout, True)
+                    status = _get_remote_data(host, '/api/status', None, request_timeout, True)
                     status_map[name] = status
                 info = {}
                 existing_info = host_info.get(name)
                 if 'error' in status or existing_info is None or 'error' in existing_info:
-                    info = _get_remote_data(host, '/api/info', request_timeout, True)
+                    info = _get_remote_data(host, '/api/info', None, request_timeout, True)
                     info_map[name] = info
                     host_info[name] = info
                 if 'error' in status or 'error' in info:
@@ -391,9 +470,14 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
                     socket_io.emit('status', status_map)
                 for host_name, status in full_status_map.items():
                     socket_io.emit('full_status', {host_name: status}, room=host_name)
+                for user, status_dict in personal_status_map.items():
+                    for host_name, status in status_dict.items():
+                        room_id = _get_personal_room(host_name, user)
+                        socket_io.emit('personal_status', {host_name: status}, room=room_id)
                 info_map.clear()
                 status_map.clear()
                 full_status_map.clear()
+                personal_status_map.clear()
                 batch_start_time = time.time()
 
     # the remaining data to send
@@ -403,17 +487,24 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
         socket_io.emit('status', status_map)
     for host_name, status in full_status_map.items():
         socket_io.emit('full_status', {host_name: status}, room=host_name)
+    for user, status_dict in personal_status_map.items():
+        for host_name, status in status_dict.items():
+            room_id = _get_personal_room(host_name, user)
+            socket_io.emit('personal_status', {host_name: status}, room=room_id)
 
 
-def _get_remote_data(host, path, timeout, encrypted):
+def _get_remote_data(host, path, args, timeout, encrypted):
     address = host['address']
     port_num = host.get('port') or config['server']['port']
     response = None
     data = None
     try:
         url = "http://%s:%d%s" % (address, port_num, path)
+        args = args or {}
         if encrypted:
-            url += '?encrypted=1'
+            args['encrypted'] = 1
+        if args:
+            url += "?" + urlencode(args)
         response = session.get(url, timeout=timeout)
     except Exception as e:
         data = {
@@ -456,6 +547,25 @@ def _get_remote_data(host, path, timeout, encrypted):
                     }
                 }
     return data
+
+
+def _get_personal_room(host_name: str, user_name: str)->str:
+    return '%s:%s' % (host_name, user_name)
+
+
+def _get_active_users(rooms, host) -> set:
+    if not rooms:
+        return set()
+    active_users = set()
+    for room_id, subscribers in rooms.items():
+        if not room_id or not subscribers:  # lobby or empty room
+            continue
+        if room_id == host:  # requesting full status
+            active_users.add(collector.GLOBAL_ACTIVE_USER)
+        elif room_id.startswith(host + ':'):  # requesting personal status
+            uid = room_id.split(':', 1)[1]
+            active_users.add(uid)
+    return active_users
 
 
 collector.init()

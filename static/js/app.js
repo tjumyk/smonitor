@@ -2,7 +2,7 @@
 (function() {
   var app, human_size, parse_error_response, percent_level;
 
-  app = angular.module('app', ['ngRoute']);
+  app = angular.module('app', ['ngRoute', 'ngCookies']);
 
   app.config([
     '$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
@@ -75,7 +75,7 @@
 
   app.controller('RootController', [
     '$scope', '$http', '$timeout', '$interval', function($scope, $http, $timeout, $interval) {
-      var format_cpu_time, handle_update_result_message, init, process_full_status_message, process_info_message, process_proccess_info, process_status_message, update_uptime;
+      var format_cpu_time, handle_update_result_message, init, process_full_status_message, process_info_message, process_personal_status_message, process_proccess_info, process_status_message, update_uptime;
       process_info_message = function(info) {
         var gpu, i, j, len, len1, part, ref, ref1;
         if (info.error) {
@@ -160,7 +160,7 @@
         return status;
       };
       process_full_status_message = function(status) {
-        var gpu, i, j, k, l, len, len1, len2, len3, len4, m, name, part, proc, ref, ref1, ref2, ref3, ref4, ref5, user;
+        var gpu, i, j, k, l, len, len1, len2, len3, len4, limit_div_100, m, name, part, proc, ref, ref1, ref2, ref3, ref4, ref5, usage_div_100, user;
         if (status.error) {
           return status;
         }
@@ -211,8 +211,10 @@
             gpu.memory.free_h = human_size(gpu.memory.free);
             gpu.memory.used_h = human_size(gpu.memory.used);
             if (gpu.power) {
-              gpu.power.usage_h = Math.round(gpu.power.usage / 100) / 10 + 'W';
-              gpu.power.limit_h = Math.round(gpu.power.limit / 100) / 10 + 'W';
+              usage_div_100 = gpu.power.usage / 100;
+              gpu.power.usage_h = Math.round(usage_div_100) / 10 + 'W';
+              limit_div_100 = gpu.power.limit / 100;
+              gpu.power.limit_h = Math.round(limit_div_100) / 10 + 'W';
               gpu.power.percent = Math.round(gpu.power.usage / gpu.power.limit * 100);
             }
             if (gpu.performance !== void 0) {
@@ -221,6 +223,41 @@
             ref5 = gpu.process_list;
             for (m = 0, len4 = ref5.length; m < len4; m++) {
               proc = ref5[m];
+              process_proccess_info(proc);
+            }
+          }
+        }
+        return status;
+      };
+      process_personal_status_message = function(status) {
+        var gpu, gpu_index, i, j, len, len1, limit_div_100, proc, ref, ref1, ref2, usage_div_100;
+        if (status.error) {
+          return status;
+        }
+        ref = status.top_processes;
+        for (i = 0, len = ref.length; i < len; i++) {
+          proc = ref[i];
+          process_proccess_info(proc);
+        }
+        if (status.gpu) {
+          ref1 = status.gpu.devices;
+          for (gpu_index in ref1) {
+            gpu = ref1[gpu_index];
+            gpu.memory.free_h = human_size(gpu.memory.free);
+            gpu.memory.used_h = human_size(gpu.memory.used);
+            if (gpu.power) {
+              usage_div_100 = gpu.power.usage / 100;
+              gpu.power.usage_h = Math.round(usage_div_100) / 10 + 'W';
+              limit_div_100 = gpu.power.limit / 100;
+              gpu.power.limit_h = Math.round(limit_div_100) / 10 + 'W';
+              gpu.power.percent = Math.round(gpu.power.usage / gpu.power.limit * 100);
+            }
+            if (gpu.performance !== void 0) {
+              gpu.performance_percent = gpu.performance * (-100 / 15) + 100;
+            }
+            ref2 = gpu.process_list;
+            for (j = 0, len1 = ref2.length; j < len1; j++) {
+              proc = ref2[j];
               process_proccess_info(proc);
             }
           }
@@ -486,6 +523,17 @@
               return results;
             });
           });
+          socket.on('personal_status', function(message) {
+            return $timeout(function() {
+              var name, personal_status_message, results;
+              results = [];
+              for (name in message) {
+                personal_status_message = message[name];
+                results.push(host_map[name].personal_status = process_personal_status_message(personal_status_message));
+              }
+              return results;
+            });
+          });
           socket.on('update_result', function(message) {
             return $timeout(function() {
               var name, result_message, results;
@@ -522,6 +570,11 @@
               return local_host.full_status = process_full_status_message(message);
             });
           });
+          socket.on('personal_status', function(message) {
+            return $timeout(function() {
+              return local_host.personal_status = process_personal_status_message(message);
+            });
+          });
         }
         $scope.config = config;
         $scope.socket = socket;
@@ -556,19 +609,36 @@
   ]);
 
   app.controller('HostController', [
-    '$scope', '$http', '$timeout', '$routeParams', '$location', function($scope, $http, $timeout, $routeParams, $location) {
-      var host_id, re_enable_full_status;
+    '$scope', '$http', '$timeout', '$routeParams', '$location', '$cookies', function($scope, $http, $timeout, $routeParams, $location, $cookies) {
+      var enable_current_view, host_id;
       host_id = $routeParams['hid'];
-      re_enable_full_status = function() {
-        return $scope.socket.emit('enable_full_status', host_id);
+      $scope.enable_personal_view = $cookies.get('enable_personal_view') === 'true';
+      enable_current_view = function() {
+        return $timeout(function() {
+          if ($scope.enable_personal_view) {
+            $scope.socket.emit('enable_personal_status', host_id);
+            return $scope.socket.emit('disable_full_status', host_id);
+          } else {
+            $scope.socket.emit('enable_full_status', host_id);
+            return $scope.socket.emit('disable_personal_status', host_id);
+          }
+        });
       };
       $scope.$on('$destroy', function() {
         if ($scope.socket && $scope.host) {
-          $scope.socket.off('reconnect', re_enable_full_status);
+          $scope.socket.off('reconnect', enable_current_view);
           $scope.socket.emit('disable_full_status', host_id);
+          $scope.socket.emit('disable_personal_status', host_id);
         }
         if ($scope.host) {
-          return $scope.host.full_status = void 0;
+          $scope.host.full_status = void 0;
+          return $scope.host.personal_status = void 0;
+        }
+      });
+      $scope.$watch('enable_personal_view', function(newVal, oldVal) {
+        if (newVal !== oldVal) {
+          $cookies.put('enable_personal_view', newVal);
+          return enable_current_view();
         }
       });
       $scope.$watch('socket', function(socket) {
@@ -599,8 +669,8 @@
         $timeout(function() {
           return $('.host-switch').dropdown();
         });
-        socket.emit('enable_full_status', host_id);
-        return socket.on('reconnect', re_enable_full_status);
+        socket.on('reconnect', enable_current_view);
+        return enable_current_view();
       });
       return $scope.update = function() {
         if ($scope.host) {

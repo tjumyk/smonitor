@@ -1,0 +1,156 @@
+<div class="ui fluid card">
+    <div class="content">
+        <div class="header">
+            <div class="right floated">{{info.name}}</div>
+            <div class="ui label" ng-class="{'green': status.processes>0}">
+                GPU {{info.index}}
+            </div>
+        </div>
+    </div>
+    <div class="content">
+        <div class="ui stackable grid">
+            <div ng-if="showChart" class="eight wide column">
+                <div style="position: relative; width: 100%; height: 20vh">
+                    <canvas class="gpu-chart" height="300"></canvas>
+                </div>
+            </div>
+            <div class="column" ng-class="{'eight wide': !showChart, 'four wide': showChart}" ng-hide="status.utilization.gpu==0 && status.utilization.memory==0 && fullStatus.memory.used<=gpu_memory_idle_threshold">
+                <div>
+                    <i class="heartbeat icon"></i>
+                    GPU Utilization
+                    <div class="percent-bar">
+                        <div class="label"><i class="icon"></i></div>
+                        <div class="bar">
+                            <div class="inner" ng-style="{'width': status.utilization.gpu+'%'}"></div>
+                        </div>
+                        <div class="number">{{status.utilization.gpu}}%</div>
+                    </div>
+                </div>
+                <div>
+                    <i class="exchange icon"></i>
+                    Memory Bandwidth Utilization
+                    <div class="percent-bar">
+                        <div class="label"><i class="icon"></i></div>
+                        <div class="bar">
+                            <div class="inner" ng-style="{'width': status.utilization.memory+'%'}"></div>
+                        </div>
+                        <div class="number">{{status.utilization.memory}}%</div>
+                    </div>
+                </div>
+                <div>
+                    <i class="microchip icon"></i>
+                    Memory Utilization
+                    <div class="percent-bar">
+                        <div class="label"><i class="icon"></i></div>
+                        <div class="bar">
+                            <div class="inner" ng-style="{'width': status.memory.percent+'%'}"></div>
+                        </div>
+                        <div class="number">{{status.memory.percent}}%</div>
+                    </div>
+                    <div class="legend">
+                        <div class="items">
+                            <div class="item">
+                                <i class="color-block disk-used"></i>
+                                <span class="header">Used</span>
+                                {{fullStatus.memory.used_h}}
+                            </div>
+                            <div class="item">
+                                <i class="color-block"></i>
+                                <span class="header">Free</span>
+                                {{fullStatus.memory.free_h}}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="centered-text">
+                        <b>Total</b> {{info.memory.total_h}}
+                    </div>
+                </div>
+            </div>
+            <div class="column" ng-class="{'eight wide': !showChart, 'four wide': showChart}" ng-show="status.utilization.gpu==0 && status.utilization.memory==0 && fullStatus.memory.used<=gpu_memory_idle_threshold">
+                <div class="vertical-center">
+                    <div class="inner">
+                        <h3 class="ui center aligned icon header">
+                            <i class="disabled circular coffee icon"></i>
+                            <div class="content">
+                                <div class="muted-text">Idle</div>
+                            </div>
+                        </h3>
+                    </div>
+                </div>
+            </div>
+            <div class="column" ng-class="{'eight wide': !showChart, 'four wide': showChart}">
+                <div class="ui inverted dimmer" ng-class="{'active': fullStatus==undefined}">
+                    <div class="ui loader"></div>
+                </div>
+                <div ng-show="fullStatus.fan_speed!==undefined">
+                    <i class="asterisk icon"></i>
+                    Fan Speed
+                    <div class="percent-bar">
+                        <div class="label"><i class="icon"></i></div>
+                        <div class="bar">
+                            <div class="inner-secondary" ng-style="{'width': fullStatus.fan_speed+'%'}"></div>
+                        </div>
+                        <div class="number">{{fullStatus.fan_speed}}%</div>
+                    </div>
+                </div>
+                <div ng-show="fullStatus.temperature!==undefined">
+                    <i class="thermometer icon"></i>
+                    Temperature
+                    <div class="percent-bar">
+                        <div class="label"><i class="icon"></i></div>
+                        <div class="bar">
+                            <div class="inner-secondary" ng-style="{'width': fullStatus.temperature+'%'}"></div>
+                        </div>
+                        <div class="number">{{fullStatus.temperature}}&deg;C</div>
+                    </div>
+                </div>
+                <div ng-show="fullStatus.power">
+                    <i class="bolt icon"></i>
+                    Power Usage ({{fullStatus.power.usage_h}} / {{fullStatus.power.limit_h}})
+                    <div class="percent-bar">
+                        <div class="label"><i class="icon"></i></div>
+                        <div class="bar">
+                            <div class="inner-secondary" ng-style="{'width': fullStatus.power.percent+'%'}"></div>
+                        </div>
+                        <div class="number">{{fullStatus.power.percent}}%</div>
+                    </div>
+                </div>
+                <div ng-show="fullStatus.performance!==undefined">
+                    <i class="signal icon"></i>
+                    Performance State
+                    <div class="percent-bar">
+                        <div class="label"><i class="icon"></i></div>
+                        <div class="bar">
+                            <div class="inner-secondary" ng-style="{'width': fullStatus.performance_percent+'%'}"></div>
+                        </div>
+                        <div class="number">P{{fullStatus.performance}}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div ng-show="fullStatus.process_list.length > 0">
+            <div class="ui divider"></div>
+            <div class="table-responsive">
+                <table class="ui celled unstackable very compact single line sortable table">
+                    <thead><tr><th>PID</th><th>PPID</th><th>User</th><th>VIRT</th><th>RES</th><th ng-hide="host.info.platform.system=='Windows'">SHR</th><th class="sorted descending">GPU Mem</th><th>Status</th><th>CPU%</th><th>Mem%</th><th>TIME+</th><th>Command</th></tr></thead>
+                    <tbody>
+                    <tr ng-repeat="p in fullStatus.process_list">
+                        <td>{{p.pid}}</td>
+                        <td>{{p.ppid}}</td>
+                        <td>{{p.username}}</td>
+                        <td>{{p.memory_info.vms_h}}</td>
+                        <td>{{p.memory_info.rss_h}}</td>
+                        <td ng-hide="host.info.platform.system=='Windows'">{{p.memory_info.shared_h}}</td>
+                        <td>{{p.gpu_memory_h}}</td>
+                        <td>{{p.status}}</td>
+                        <td>{{p.cpu_percent}}</td>
+                        <td>{{p.memory_percent}}</td>
+                        <td>{{p.cpu_times.total_h}}</td>
+                        <td>{{p.cmdline_h}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

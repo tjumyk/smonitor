@@ -5,3 +5,4 @@ __pycache__
 config.json
 supervisor-conf
 oauth.config.json
+user_hosts/

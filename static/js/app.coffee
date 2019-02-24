@@ -1,4 +1,4 @@
-app = angular.module 'app', ['ngRoute']
+app = angular.module 'app', ['ngRoute', 'ngCookies']
 
 app.config ['$routeProvider', '$locationProvider', ($routeProvider, $locationProvider)->
   $locationProvider.html5Mode(false)
@@ -140,8 +140,32 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
         gpu.memory.free_h = human_size(gpu.memory.free)
         gpu.memory.used_h = human_size(gpu.memory.used)
         if gpu.power
-          gpu.power.usage_h = Math.round(gpu.power.usage / 100) / 10 + 'W'
-          gpu.power.limit_h = Math.round(gpu.power.limit / 100) / 10 + 'W'
+          usage_div_100 = gpu.power.usage / 100
+          gpu.power.usage_h = Math.round(usage_div_100) / 10 + 'W'
+          limit_div_100 = gpu.power.limit / 100
+          gpu.power.limit_h = Math.round(limit_div_100) / 10 + 'W'
+          gpu.power.percent = Math.round(gpu.power.usage/gpu.power.limit*100)
+        if gpu.performance != undefined
+          gpu.performance_percent = gpu.performance * (-100/15) + 100
+        for proc in gpu.process_list
+          process_proccess_info(proc)
+    return status
+
+  process_personal_status_message = (status)->
+    if status.error
+      return status
+
+    for proc in status.top_processes
+      process_proccess_info(proc)
+    if status.gpu
+      for gpu_index, gpu of status.gpu.devices
+        gpu.memory.free_h = human_size(gpu.memory.free)
+        gpu.memory.used_h = human_size(gpu.memory.used)
+        if gpu.power
+          usage_div_100 = gpu.power.usage / 100
+          gpu.power.usage_h = Math.round(usage_div_100) / 10 + 'W'
+          limit_div_100 = gpu.power.limit / 100
+          gpu.power.limit_h = Math.round(limit_div_100) / 10 + 'W'
           gpu.power.percent = Math.round(gpu.power.usage/gpu.power.limit*100)
         if gpu.performance != undefined
           gpu.performance_percent = gpu.performance * (-100/15) + 100
@@ -318,6 +342,10 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
         $timeout ->
           for name, full_status_message of message
             host_map[name].full_status = process_full_status_message(full_status_message)
+      socket.on 'personal_status', (message)->
+        $timeout ->
+          for name, personal_status_message of message
+            host_map[name].personal_status = process_personal_status_message(personal_status_message)
       socket.on 'update_result', (message)->
         $timeout ->
           for name, result_message of message
@@ -339,6 +367,9 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       socket.on 'full_status', (message)->
         $timeout ->
           local_host.full_status = process_full_status_message(message)
+      socket.on 'personal_status', (message)->
+        $timeout ->
+          local_host.personal_status = process_personal_status_message(message)
 
     $scope.config = config
     $scope.socket = socket
@@ -367,18 +398,33 @@ app.controller 'HomeController', ['$scope', '$http', '$timeout', ($scope, $http,
   , 100
 ]
 
-app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', '$location', ($scope, $http, $timeout, $routeParams, $location)->
+app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams', '$location', '$cookies', ($scope, $http, $timeout, $routeParams, $location, $cookies)->
   host_id = $routeParams['hid']
 
-  re_enable_full_status = ->
-    $scope.socket.emit('enable_full_status', host_id)
+  $scope.enable_personal_view = $cookies.get('enable_personal_view') == 'true'
+
+  enable_current_view = ->
+    $timeout ->
+      if $scope.enable_personal_view
+        $scope.socket.emit('enable_personal_status', host_id)
+        $scope.socket.emit('disable_full_status', host_id)
+      else
+        $scope.socket.emit('enable_full_status', host_id)
+        $scope.socket.emit('disable_personal_status', host_id)
 
   $scope.$on '$destroy', ->
     if $scope.socket and $scope.host
-      $scope.socket.off('reconnect', re_enable_full_status)
+      $scope.socket.off('reconnect', enable_current_view)
       $scope.socket.emit('disable_full_status', host_id)
+      $scope.socket.emit('disable_personal_status', host_id)
     if $scope.host
       $scope.host.full_status = undefined
+      $scope.host.personal_status = undefined
+
+  $scope.$watch 'enable_personal_view', (newVal, oldVal)->
+    if newVal != oldVal
+      $cookies.put('enable_personal_view', newVal)
+      enable_current_view()
 
   $scope.$watch 'socket', (socket)->
     return if !socket
@@ -395,8 +441,8 @@ app.controller 'HostController', ['$scope', '$http', '$timeout', '$routeParams',
       return
     $timeout ->
       $('.host-switch').dropdown()
-    socket.emit('enable_full_status', host_id)
-    socket.on('reconnect', re_enable_full_status)
+    socket.on('reconnect', enable_current_view)
+    enable_current_view()
 
   $scope.update = ->
     if $scope.host
