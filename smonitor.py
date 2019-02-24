@@ -159,8 +159,7 @@ def self_update():
     return jsonify(success=True, repo_label=repo_label, runtime_label=runtime_label, latest_label=latest_label)
 
 
-@app.route('/api/self_restart')
-#@requires_login
+@app.route('/api/self_restart')  # removed @requires_login
 def self_restart():
     logger.info('[Self Restart] Started')
     socket_io.start_background_task(target=_restart)
