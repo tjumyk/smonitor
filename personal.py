@@ -21,7 +21,7 @@ def _read_user_hosts_map(map_file_path: str) -> dict:
         return {}
     mapping = {}
     with open(map_file_path) as f:
-        for name, hosts in json.load(f):
+        for name, hosts in json.load(f).items():
             for host in hosts:
                 mapping[host] = name
     return mapping
