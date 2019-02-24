@@ -441,7 +441,10 @@ def _get_status_nvml(active_users):
                 if require_global_detail:
                     devices_full_status.append(full_status)
                 for user in requesting_users:
-                    devices_personal_status[user][gpu_index] = full_status
+                    full_status_copy = dict(full_status)
+                    full_status_copy['process_list'] = list(filter(lambda x: x['username'] == user,
+                                                                   full_status['process_list']))
+                    devices_personal_status[user][gpu_index] = full_status_copy
 
     status = {
         'basic': {
