@@ -19,10 +19,10 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 import collector
 import loggers
-import oauth
+from auth_connect import oauth
 import repository
 import personal
-from oauth import requires_login
+from auth_connect.oauth import requires_login
 
 logger = loggers.get_logger(__name__)
 
@@ -549,7 +549,7 @@ def _get_remote_data(host, path, args, timeout, encrypted):
     return data
 
 
-def _get_personal_room(host_name: str, user_name: str)->str:
+def _get_personal_room(host_name: str, user_name: str) -> str:
     return '%s:%s' % (host_name, user_name)
 
 
