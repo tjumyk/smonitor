@@ -69,6 +69,7 @@ app.controller 'GpuBoxController', ['$scope', '$timeout', ($scope, $timeout)->
       $timeout ->
         while $scope.data_timestamps.length >= max_timestamps
           $scope.data_timestamps.shift()
+        while $scope.data_gpu_utilization.length >= max_timestamps
           $scope.data_gpu_utilization.shift()
 
         now = new Date()
@@ -83,6 +84,7 @@ app.controller 'GpuBoxController', ['$scope', '$timeout', ($scope, $timeout)->
       $timeout ->
         while $scope.data_timestamps.length >= max_timestamps
           $scope.data_timestamps.shift()
+        while $scope.data_cpu_utilization.length >= max_timestamps
           $scope.data_cpu_utilization.shift()
 
         now = new Date()

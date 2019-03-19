@@ -87,6 +87,8 @@
             var now, old_timestamps;
             while ($scope.data_timestamps.length >= max_timestamps) {
               $scope.data_timestamps.shift();
+            }
+            while ($scope.data_gpu_utilization.length >= max_timestamps) {
               $scope.data_gpu_utilization.shift();
             }
             now = new Date();
@@ -103,6 +105,8 @@
             var cpu_total, i, len, now, old_timestamps, p, ref;
             while ($scope.data_timestamps.length >= max_timestamps) {
               $scope.data_timestamps.shift();
+            }
+            while ($scope.data_cpu_utilization.length >= max_timestamps) {
               $scope.data_cpu_utilization.shift();
             }
             now = new Date();
