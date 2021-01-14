@@ -171,7 +171,7 @@ def _update_psutil_static_info():
         'cpu': {
             'count': psutil.cpu_count(),
             'cores': psutil.cpu_count(False),
-            'brand': cpu_info['brand']
+            'brand': cpu_info.get('brand') or cpu_info.get('brand_raw')
         },
         'memory': {
             'total': vm.total
