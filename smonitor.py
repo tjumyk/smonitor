@@ -43,7 +43,7 @@ cookie_path = config['server'].get('cookie_path')
 if cookie_path:
     app.config['SESSION_COOKIE_PATH'] = cookie_path
 
-socket_io = SocketIO(app, async_mode='gevent')
+socket_io = SocketIO(app, async_mode='gevent', cors_allowed_origins='*')
 
 session = requests.session()
 
