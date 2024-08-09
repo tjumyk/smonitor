@@ -1,0 +1,3 @@
+[submodule "auth_connect"]
+	path = auth_connect
+	url = git@github.com:tjumyk/auth_connect.git

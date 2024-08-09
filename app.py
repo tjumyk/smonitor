@@ -17,9 +17,9 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 import collector
 import loggers
-import oauth
 import repository
-from oauth import requires_login
+from auth_connect import oauth
+from auth_connect.oauth import requires_login
 
 logger = loggers.get_logger(__name__)
 
