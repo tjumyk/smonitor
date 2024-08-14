@@ -3,8 +3,6 @@ import threading
 from functools import wraps
 from typing import Optional
 
-import acl
-
 _DEFAULT_DRIVER_PATH = '/usr/local/Ascend'
 
 _load_lock = threading.Lock()
