@@ -71,6 +71,7 @@ if config['monitor']['mode'] == 'app':
     oauth.init_app(app)
 else:
     # disable all oauth logic
+    oauth = None
     requires_login = _dummy_requires_login
 
 
@@ -98,7 +99,7 @@ def get_config():
     _config = dict(config['monitor'])
     _config['port'] = config['server']['port']
     _config['package'] = collector.get_static_info()['package']
-    user = oauth.get_user()
+    user = oauth.get_user() if oauth is not None else None
     if user:
         _config['user'] = user.to_dict()
     return jsonify(_config)
@@ -183,7 +184,7 @@ def self_restart():
 @socket_io.on('connect')
 def socket_connect():
     try:
-        user = oauth.get_user()  # will return None if OAuth is skipped
+        user = oauth.get_user() if oauth is not None else None  # will return None if OAuth is skipped
     except oauth.OAuthError:
         return False
 
