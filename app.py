@@ -430,8 +430,8 @@ def _collect_remote_status(host_retry, request_timeout, batch_timeout):
 
 
 def _get_remote_data(host, path, timeout, encrypted):
-    address = host['address']
-    port_num = host.get('port') or config['server']['port']
+    address = host.get('api_address') or host['address']
+    port_num = host.get('api_port') or host.get('port') or config['server']['port']
     response = None
     data = None
     try:
