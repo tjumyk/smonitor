@@ -7,12 +7,14 @@ import psutil
 from cpuinfo import cpuinfo
 
 import loggers
+import pyacl
 import pynvml
 import repository
 
 logger = loggers.get_logger(__name__)
 
-_nvml_inited = False
+_nvml_inited = False  # NVML: Nvidia Management Library
+_acl_inited = False  # ACL: Huawei Ascend Computing Language
 _static_info = {
     'public': {},
     'private': {}
@@ -23,6 +25,7 @@ _process_info_lock = threading.Lock()
 
 def init():
     global _nvml_inited
+    global _acl_inited
     _update_package_info()
     _update_platform_info()
     _update_psutil_static_info()
@@ -34,10 +37,20 @@ def init():
     except pynvml.NVMLError as e:
         logger.warning('[NVML] NVML Not Initialized: %s' % str(e))
         pass
+    try:
+        pyacl.acl_init()
+        _acl_inited = True
+        logger.info('[ACL] ACL Initialized')
+        _update_acl_static_info()
+    except pyacl.ACLError as e:
+        logger.warning('[ACL] ACL Not Initialized: %s' % str(e))
+        pass
 
 
 def clean_up():
     global _nvml_inited
+    global _acl_inited
+
     if _nvml_inited:
         try:
             pynvml.nvmlShutdown()
@@ -46,6 +59,16 @@ def clean_up():
             logger.error('[NVML] NVML Failed to Shutdown: %s' % str(e))
             pass
     _nvml_inited = False
+
+    if _acl_inited:
+        try:
+            pyacl.acl_shutdown()
+            logger.info('[ACL] ACL Shutdown')
+        except pyacl.ACLError as e:
+            logger.error('[ACL] ACL Failed to Shutdown: %s' % str(e))
+            pass
+    _acl_inited = False
+
     _static_info['public'] = {}
     _static_info['private'] = {}
 
@@ -58,6 +81,8 @@ def get_status():
     status = _get_status_psutil()
     if _nvml_inited:
         status['gpu'] = _get_status_nvml()
+    if _acl_inited:
+        status['npu'] = _get_status_acl()
     return status
 
 
@@ -67,6 +92,10 @@ def get_full_status():
         full_status_nvml = _get_full_status_nvml()
         status['basic']['gpu'] = full_status_nvml['basic']
         status['full']['gpu'] = full_status_nvml['full']
+    if _acl_inited:
+        full_status_acl = _get_full_status_acl()
+        status['basic']['npu'] = full_status_acl['basic']
+        status['full']['npu'] = full_status_acl['full']
     return status
 
 
@@ -217,6 +246,33 @@ def _update_nvml_static_info():
         'gpu': {
             'handles': devices_handles
         }
+    })
+
+
+def _update_acl_static_info():
+    driver_version = pyacl.get_driver_version()
+    acl_version = pyacl.get_acl_version()
+    device_count = pyacl.get_device_count()
+    devices = []
+    for i in range(device_count):
+        name = pyacl.get_device_name(i)
+        mem_info = pyacl.get_device_memory_info(i)
+        devices.append({
+            'index': i,
+            'name': name,
+            'memory': {
+                'total': mem_info.total
+            }
+        })
+    _static_info['public'].update({
+        'npu': {
+            'driver': driver_version,
+            'acl': acl_version,
+            'devices': devices
+        }
+    })
+    _static_info['private'].update({
+        'npu': {}
     })
 
 
@@ -431,6 +487,56 @@ def _get_full_status_nvml():
             }
         except pynvml.NVMLError_NotSupported:
             pass
+        devices_full_status.append(full_status)
+    status = {
+        'basic': {
+            'devices': devices_status
+        },
+        'full': {
+            'devices': devices_full_status
+        }
+    }
+    return status
+
+
+def _get_status_acl():
+    devices_status = []
+    for device in _static_info['public']['npu']['devices']:
+        device_index = device['index']
+        util = pyacl.get_device_utilization_rates(device_index)
+        mem_info = pyacl.get_device_memory_info(device_index)
+        devices_status.append({
+            'utilization': {'cube': util.cube, 'vector': util.vector, 'aicpu': util.aicpu},
+            'memory': {
+                'percent': int(1000.0 * (1 - mem_info.free / mem_info.total)) / 10.0
+            }
+        })
+    status = {
+        'devices': devices_status
+    }
+    return status
+
+
+def _get_full_status_acl():
+    devices_status = []
+    devices_full_status = []
+    for device in _static_info['public']['npu']['devices']:
+        device_index = device['index']
+        util = pyacl.get_device_utilization_rates(device_index)
+        mem_info = pyacl.get_device_memory_info(device_index)
+        devices_status.append({
+            'utilization': {'cube': util.cube, 'vector': util.vector, 'aicpu': util.aicpu},
+            'memory': {
+                'percent': int(1000.0 * (1 - mem_info.free / mem_info.total)) / 10.0
+            }
+        })
+
+        full_status = {
+            'memory': {
+                'free': mem_info.free,
+                'used': mem_info.total - mem_info.free
+            }
+        }
         devices_full_status.append(full_status)
     status = {
         'basic': {
