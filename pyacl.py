@@ -28,7 +28,7 @@ class ACLDeviceMemoryInfo:
 
 
 def ensure_loaded(f):
-    @wraps
+    @wraps(f)
     def wrapped(*args, **kwargs):
         if not _is_loaded:
             raise ACLError('acl is not yet initialized')
