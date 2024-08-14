@@ -47,7 +47,7 @@ def _restart():
     with process_lock:
         if process:
             process.kill()
-        process = subprocess.Popen([sys.executable, 'smonitor.py'])
+        process = subprocess.Popen([sys.executable, 'app.py'])
 
 
 if config['manager']['mode'] == 'self':

@@ -1,8 +1,8 @@
 flask
 flask-socketio
 psutil
-gevent-websocket
 requests
 distro
 py-cpuinfo
 cryptography
+eventlet

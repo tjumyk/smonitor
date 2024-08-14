@@ -1,7 +1,3 @@
-from gevent import monkey
-
-monkey.patch_all()
-
 import base64
 import gzip
 import json
@@ -9,6 +5,7 @@ import os
 import socket
 import threading
 import time
+from functools import wraps
 
 import requests
 from cryptography.fernet import Fernet, InvalidToken
@@ -18,8 +15,6 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import collector
 import loggers
 import repository
-from auth_connect import oauth
-from auth_connect.oauth import requires_login
 
 logger = loggers.get_logger(__name__)
 
@@ -43,8 +38,7 @@ cookie_path = config['server'].get('cookie_path')
 if cookie_path:
     app.config['SESSION_COOKIE_PATH'] = cookie_path
 
-socket_io = SocketIO(app, async_mode='gevent', cors_allowed_origins='*')
-
+socket_io = SocketIO(app, cors_allowed_origins='*')
 session = requests.session()
 
 clients = {}
@@ -56,7 +50,23 @@ host_info = {}
 
 _crypt = Fernet(base64.urlsafe_b64encode(config['security']['secret'].encode('utf-8')))
 
-oauth.init_app(app)
+
+def _dummy_requires_login(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        return f(*args, **kwargs)
+
+    return wrapped
+
+
+if config['monitor']['mode'] == 'app':
+    from auth_connect import oauth
+    from auth_connect.oauth import requires_login
+
+    oauth.init_app(app)
+else:
+    # disable all oauth logic
+    requires_login = _dummy_requires_login
 
 
 def _encrypt(content):

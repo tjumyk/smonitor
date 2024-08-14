@@ -85,11 +85,10 @@ def _update_platform_info():
         'system': system
     }
     if system == 'Linux':
-        name, version, codename = distro.linux_distribution()
         info['distribution'] = {
-            'name': name,
-            'version': version,
-            'codename': codename
+            'name': distro.name(),
+            'version': distro.version(),
+            'codename': distro.os_release_attr('release_codename')
         }
     elif system == 'Windows':
         win_version = sys.getwindowsversion()
