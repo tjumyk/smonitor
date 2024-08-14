@@ -79,6 +79,9 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
     if info.gpu
       for gpu in info.gpu.devices
         gpu.memory.total_h = human_size(gpu.memory.total)
+    if info.npu
+      for npu in info.npu.devices
+        npu.memory.total_h = human_size(npu.memory.total)
     return info
 
   process_status_message = (status)->
@@ -147,6 +150,10 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
           gpu.performance_percent = gpu.performance * (-100/15) + 100
         for proc in gpu.process_list
           process_proccess_info(proc)
+    if status.npu
+      for npu in status.npu.devices
+        npu.memory.free_h = human_size(npu.memory.free)
+        npu.memory.used_h = human_size(npu.memory.used)
     return status
 
   process_proccess_info = (info)->
@@ -162,6 +169,8 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
       info.memory_info.shared_h = human_size(info.memory_info.shared)
     if info.gpu_memory != undefined
       info.gpu_memory_h = human_size(info.gpu_memory)
+    if info.npu_memory != undefined
+      info.npu_memory_h = human_size(info.npu_memory)
 
   format_cpu_time = (time)->
     hours = Math.floor(time / 3600)

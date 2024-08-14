@@ -129,6 +129,29 @@
                         </div>
                     </div>
                 </div>
+                <div ng-show="host.info.npu && host.status.npu">
+                    <div class="ui slim divider"></div>
+                    <div class="metric-container">
+                        <div ng-repeat="npu in host.info.npu.devices" class="metric-group" ng-class="{'success': host.status.npu.devices[gpu.index].memory.percent>1}">
+                            <div class="header">
+                                NPU {{npu.index}}
+                                <div class="sub">{{npu.name}}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">NPU Utilization</div>
+                                <div class="content">{{host.status.npu.devices[npu.index].utilization.cube + host.status.npu.devices[npu.index].utilization.vector}}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">Memory Utilization</div>
+                                <div class="content">{{host.status.npu.devices[npu.index].memory.percent}}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="header">Memory Size</div>
+                                <div class="content">{{npu.memory.total_h}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

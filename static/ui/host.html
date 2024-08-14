@@ -532,6 +532,101 @@
             </div>
         </div>
     </div>
+    <div class="ui header" ng-show="host.info.npu">
+        <i class="fire icon"></i>
+        <div class="content">
+            NPU
+            <div class="sub header" ng-show="host.info.npu">
+                Driver: {{host.info.npu.driver}} &nbsp; ACL: {{host.info.npu.acl}}
+            </div>
+        </div>
+    </div>
+    <div class="ui stackable two column grid" ng-show="host.info.npu">
+        <div class="column" ng-repeat="npu in host.info.npu.devices">
+            <div class="ui fluid card">
+                <div class="content">
+                    <div class="header">
+                        <div class="right floated">{{npu.name}}</div>
+                        <div class="ui label" ng-class="{'green': host.status.npu.devices[npu.index].memory.percent>1}">
+                            NPU {{npu.index}}
+                        </div>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="ui two column grid">
+                        <div class="column">
+                            <div>
+                                <i class="heartbeat icon"></i>
+                                Cube Utilization
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner" ng-style="{'width': host.status.npu.devices[npu.index].utilization.cube+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.status.npu.devices[npu.index].utilization.cube}}%</div>
+                                </div>
+                            </div>
+                            <div>
+                                <i class="heartbeat icon"></i>
+                                Vector Utilization
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner" ng-style="{'width': host.status.npu.devices[npu.index].utilization.vector+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.status.npu.devices[npu.index].utilization.vector}}%</div>
+                                </div>
+                            </div>
+                            <div>
+                                <i class="heartbeat icon"></i>
+                                AI CPU Utilization
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner" ng-style="{'width': host.status.npu.devices[npu.index].utilization.aicpu+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.status.npu.devices[npu.index].utilization.aicpu}}%</div>
+                                </div>
+                            </div>
+                            <div>
+                                <i class="microchip icon"></i>
+                                Memory Utilization
+                                <div class="percent-bar">
+                                    <div class="label"><i class="icon"></i></div>
+                                    <div class="bar">
+                                        <div class="inner" ng-style="{'width': host.status.npu.devices[npu.index].memory.percent+'%'}"></div>
+                                    </div>
+                                    <div class="number">{{host.status.npu.devices[npu.index].memory.percent}}%</div>
+                                </div>
+                                <div class="legend">
+                                    <div class="items">
+                                        <div class="item">
+                                            <i class="color-block disk-used"></i>
+                                            <span class="header">Used</span>
+                                            {{host.full_status.npu.devices[npu.index].memory.used_h}}
+                                        </div>
+                                        <div class="item">
+                                            <i class="color-block"></i>
+                                            <span class="header">Free</span>
+                                            {{host.full_status.npu.devices[npu.index].memory.free_h}}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="centered-text">
+                                    <b>Total</b> {{npu.memory.total_h}}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="ui inverted dimmer" ng-class="{'active': host.full_status.npu.devices[npu.index]==undefined}">
+                                <div class="ui loader"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="ui header">
         <i class="users icon"></i>
         <div class="content">Active Users</div>
