@@ -132,7 +132,7 @@
                 <div ng-show="host.info.npu && host.status.npu">
                     <div class="ui slim divider"></div>
                     <div class="metric-container">
-                        <div ng-repeat="npu in host.info.npu.devices" class="metric-group" ng-class="{'success': host.status.npu.devices[gpu.index].memory.percent>1}">
+                        <div ng-repeat="npu in host.info.npu.devices" class="metric-group" ng-class="{'success': host.status.npu.devices[npu.index].memory.percent>1}">
                             <div class="header">
                                 NPU {{npu.index}}
                                 <div class="sub">{{npu.name}}</div>

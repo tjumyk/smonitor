@@ -8,7 +8,7 @@ _DEFAULT_DRIVER_PATH = '/usr/local/Ascend'
 _load_lock = threading.Lock()
 _loaded_device_indices = set()
 _is_loaded = False
-
+acl = None
 
 class ACLError(Exception):
     pass
@@ -39,6 +39,7 @@ def ensure_loaded(f):
 
 def acl_init():
     global _is_loaded
+    global acl
 
     try:
         import acl
