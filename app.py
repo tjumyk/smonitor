@@ -48,7 +48,12 @@ worker_thread_lock = threading.Lock()
 
 host_info = {}
 
-_crypt = Fernet(base64.urlsafe_b64encode(config['security']['secret'].encode('utf-8')))
+_security_secret = config['security']['secret']
+try:
+    _crypt = Fernet(_security_secret.encode('utf-8')) # new handling of secret
+except ValueError:
+    # fallback to old handling
+    _crypt = Fernet(base64.urlsafe_b64encode(_security_secret.encode('utf-8')))
 
 
 def _dummy_requires_login(f):
@@ -300,6 +305,15 @@ def socket_update(host_id):
                     })
         else:
             emit('update_result', {host_id: result})
+
+
+@app.cli.command('gen_sec_secret')
+def gen_sec_secret():
+    # generate a base64 encoded string of a 32-bit random bytes
+    import secrets
+    _bytes = secrets.token_bytes(32)
+    encoded = base64.urlsafe_b64encode(_bytes)
+    print(encoded.decode())
 
 
 def _check_update():
