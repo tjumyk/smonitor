@@ -6,3 +6,4 @@ distro
 py-cpuinfo
 cryptography
 eventlet
+gunicorn
