@@ -107,10 +107,21 @@ def get_device_count() -> int:
         raise ACLError('obtained invalid device count: %r' % count)
     return count
 
+def _set_device(device_index: int):
+    try:
+        ret = acl.rt.set_device(device_index)
+        _loaded_device_indices.add(device_index)
+    except Exception as e:
+        raise ACLError('failed to set device to %r: %s' % (device_index, str(e)))
+    if not isinstance(ret, (int, float)) or ret != 0:
+        raise ACLError('failed to set device to %r (ret=%r)' % (device_index, ret))
 
 def _reset_device(device_index: int):
+    if device_index not in _loaded_device_indices:
+        return
     try:
         ret = acl.rt.reset_device(device_index)
+        _loaded_device_indices.remove(device_index)
     except Exception as e:
         raise ACLError('failed to reset device %r: %s' % (device_index, str(e)))
     if not isinstance(ret, (int, float)) or ret != 0:
@@ -128,13 +139,7 @@ def get_device_name(device_index: int) -> str:
 
 @ensure_loaded
 def get_device_memory_info(device_index: int) -> ACLDeviceMemoryInfo:
-    try:
-        ret = acl.rt.set_device(device_index)
-    except Exception as e:
-        raise ACLError('failed to set device to %r: %s' % (device_index, str(e)))
-    if not isinstance(ret, (int, float)) or ret != 0:
-        raise ACLError('failed to set device to %r (ret=%r)' % (device_index, ret))
-
+    _set_device(device_index)
     try:
         free, total, ret = acl.rt.get_mem_info(0)
     except Exception as e:
