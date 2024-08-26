@@ -356,6 +356,18 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
     $scope.$on '$destroy', ->
       $interval.cancel(handle)
 
+    if window.activityDetector
+      detector = window.activityDetector(
+        timeToIdle:  5 * 60 * 1000
+      )
+      detector.on 'idle', ->
+        if socket.connected
+          socket.disconnect()
+      detector.on 'active', ->
+        if socket.disconnected
+          socket.connect()
+
+
   $scope.init_success = undefined
   $scope.init_error = undefined
   $scope.loading_config = true

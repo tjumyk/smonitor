@@ -452,6 +452,7 @@
       };
       init = function(raw_config) {
         var config,
+    detector,
     handle,
     host,
     host_group,
@@ -660,10 +661,27 @@
         $scope.socket = socket;
         handle = $interval(update_uptime,
     30 * 1000);
-        return $scope.$on('$destroy',
+        $scope.$on('$destroy',
     function() {
           return $interval.cancel(handle);
         });
+        if (window.activityDetector) {
+          detector = window.activityDetector({
+            timeToIdle: 5 * 60 * 1000
+          });
+          detector.on('idle',
+    function() {
+            if (socket.connected) {
+              return socket.disconnect();
+            }
+          });
+          return detector.on('active',
+    function() {
+            if (socket.disconnected) {
+              return socket.connect();
+            }
+          });
+        }
       };
       $scope.init_success = void 0;
       $scope.init_error = void 0;
