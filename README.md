@@ -22,6 +22,10 @@ When NVIDIA(R) GPUs and the corresponding driver are installed, it also support 
 
 Note: some of the above GPU metrics are not available for old models of NVIDIA GPUs.
 
+**[NEW FEATURE]: NPU Support**
+
+We have added experimental support to Huawei NPU (e.g. Ascend 910B).
+
 ### Supported OS
 
 - Linux
@@ -116,6 +120,17 @@ If you decide to use nginx, apart from the regular proxy block, you need to add 
 ## Known Issues
 
 - The WebSocket of the server could freeze after running for a long time. We have not found the exact reason for this issue.  
+
+## Development
+
+We may offer very limited development support if you raise any issues here.
+
+Some useful hints for development:
+
+### Build Front-end
+
+- Install `coffeescript` package : `npm i -g coffeescript` .
+- Use `coffee` to compile front-end: `coffee --map --compile static/js/` .
 
 ## Disclaimer
 
