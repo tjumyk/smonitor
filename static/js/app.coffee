@@ -358,7 +358,9 @@ app.controller('RootController', ['$scope', '$http', '$timeout', '$interval', ($
 
     if window.activityDetector
       detector = window.activityDetector(
-        timeToIdle:  5 * 60 * 1000
+        timeToIdle:  5 * 60 * 1000,
+        inactivityEvents: [],
+        ignoredEventsWhenIdle: []
       )
       detector.on 'idle', ->
         if socket.connected
